@@ -424,6 +424,10 @@ h3 {
   font-weight: 800;
 }
 
+.axis-label-bg {
+  fill: color-mix(in srgb, var(--surface-strong), transparent 8%);
+}
+
 .axis-title {
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -460,6 +464,35 @@ h3 {
   stroke: var(--danger);
   stroke-width: 2;
   opacity: 0.42;
+}
+
+.overlay-primary-line,
+.legend-primary {
+  stroke: var(--accent);
+}
+
+.overlay-compare-line,
+.legend-compare {
+  stroke: var(--danger);
+}
+
+.overlay-compare-line {
+  stroke-width: 2.5;
+}
+
+.overlay-compare-point {
+  fill: var(--danger) !important;
+}
+
+.chart-legend line {
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.chart-legend text {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .raster-primary text {

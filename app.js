@@ -945,24 +945,39 @@ function drawOverlay(primary, logs, compare, compareLogs, range) {
     return { svg: `<div class="empty-state compact"><h2>Choose a comparison</h2><p>Select a second button to overlay markers.</p></div>`, insights: ["Choose another button to look for visual overlap."] };
   }
   const bounds = timeBounds(range);
-  const yMin = primary.type === "rating" ? 1 : 0;
-  const yMax = primary.type === "rating" ? primary.ratingScale || 10 : 1;
-  const primaryMarks = primary.type === "rating"
-    ? `<path d="${linePath(logs.map((log) => ({ x: scaleTime(log.timestamp, bounds, 44, 748), y: scale(log.value, 1, primary.ratingScale || 10, 296, 36) })))}" class="chart-line"></path>`
-    : logs.map((log) => `<circle cx="${scaleTime(log.timestamp, bounds, 44, 748)}" cy="226" r="4"></circle>`).join("");
-  const compareMarks = compareLogs.map((log) => {
-    const x = scaleTime(log.timestamp, bounds, 44, 748);
-    return `<line x1="${x}" x2="${x}" y1="42" y2="300" class="overlay-marker"><title>${escapeHtml(compare.name)} · ${formatDateTime(log.timestamp)}</title></line>`;
-  }).join("");
+  const isValueOverlay = primary.type === "rating";
+  const days = daySeries(range);
+  const primarySeries = dailySeries(primary, logs, days);
+  const compareSeries = dailySeries(compare, compareLogs, days);
+  const yMin = isValueOverlay ? 1 : 0;
+  const yMax = isValueOverlay
+    ? Math.max(primary.ratingScale || 10, compare.type === "rating" ? compare.ratingScale || 10 : 0)
+    : Math.max(1, ...primarySeries.map((point) => point.value), ...compareSeries.map((point) => point.value));
+  const primaryPoints = primarySeries.map((point) => ({
+    x: scale(point.date.getTime(), bounds.min, bounds.max, 44, 748),
+    y: scale(point.value, yMin, yMax, 296, 36),
+    value: point.value
+  }));
+  const comparePoints = compareSeries.map((point) => ({
+    x: scale(point.date.getTime(), bounds.min, bounds.max, 44, 748),
+    y: scale(point.value, yMin, yMax, 296, 36),
+    value: point.value
+  }));
+  const primaryMarks = pointMarkers(primaryPoints, primary.name, "primary");
+  const compareMarks = pointMarkers(comparePoints, compare.name, "compare");
+  const legend = chartLegend([
+    { label: primary.name, className: "legend-primary" },
+    { label: compare.name, className: "legend-compare" }
+  ]);
   return {
     svg: chartSvg(`${axes({
       xTicks: dateTicks(bounds.min, bounds.max),
-      yTicks: primary.type === "rating" ? numericTicks(yMin, yMax, 5) : [{ value: 0, label: "events" }],
+      yTicks: numericTicks(yMin, yMax, 5),
       yMin,
       yMax,
       xLabel: "date",
-      yLabel: primary.type === "rating" ? `${primary.name} value` : primary.name
-    })}<g class="chart-points">${primaryMarks}</g><g>${compareMarks}</g>`),
+      yLabel: isValueOverlay ? "daily value" : "daily logs"
+    })}${legend}<path d="${linePath(primaryPoints)}" class="chart-line overlay-primary-line"></path><path d="${linePath(comparePoints)}" class="chart-line overlay-compare-line"></path><g class="chart-points">${primaryMarks}${compareMarks}</g>`),
     insights: [`${compareLogs.length} ${compare.name} markers over ${logs.length} ${primary.name} logs.`, `Overlap is not causation. Use it as a clue, not proof.`]
   };
 }
@@ -1077,6 +1092,32 @@ function lineChart(points, minY, maxY, title, insights) {
   };
 }
 
+function dailySeries(button, logs, days) {
+  const byDay = groupByDay(logs);
+  return days.map((date) => {
+    const values = byDay[dateKey(date)] || [];
+    if (button.type === "rating") {
+      const ratingValues = values.map((log) => log.value).filter(Number.isFinite);
+      return { date, value: ratingValues.length ? average(ratingValues) : null };
+    }
+    return { date, value: values.length };
+  }).filter((point) => point.value !== null);
+}
+
+function pointMarkers(points, label, variant) {
+  return points.map((point) => {
+    return `<circle class="overlay-${variant}-point" cx="${point.x}" cy="${point.y}" r="3"><title>${escapeHtml(label)} · ${round(point.value, 1)}</title></circle>`;
+  }).join("");
+}
+
+function chartLegend(items) {
+  return `<g class="chart-legend">${items.map((item, index) => {
+    const x = 70;
+    const y = 44 + index * 20;
+    return `<g><line x1="${x}" x2="${x + 28}" y1="${y}" y2="${y}" class="${item.className}"></line><text x="${x + 36}" y="${y + 4}">${escapeHtml(item.label)}</text></g>`;
+  }).join("")}</g>`;
+}
+
 function chartSvg(content, width = 800, height = 350) {
   return `<svg class="chart-svg" viewBox="0 0 ${width} ${height}" role="img">${content}</svg>`;
 }
@@ -1113,7 +1154,10 @@ function axes({ xTicks = [], yTicks = [], yMin = 0, yMax = 1, xLabel = "", yLabe
   }).join("");
   const y = yTicks.map((tick) => {
     const yPos = scale(tick.value, yMin, yMax, 296, 36);
-    return `<g><line x1="38" y1="${yPos}" x2="44" y2="${yPos}"></line><line x1="44" y1="${yPos}" x2="760" y2="${yPos}" class="grid-line"></line><text x="32" y="${yPos + 4}" text-anchor="end">${escapeHtml(tick.label ?? formatAxisNumber(tick.value))}</text></g>`;
+    const inside = tick.align === "inside";
+    const label = escapeHtml(tick.label ?? formatAxisNumber(tick.value));
+    const bg = inside ? `<rect x="49" y="${yPos - 12}" width="${Math.min(128, Math.max(54, label.length * 8 + 14))}" height="19" rx="4" class="axis-label-bg"></rect>` : "";
+    return `<g><line x1="38" y1="${yPos}" x2="44" y2="${yPos}"></line><line x1="44" y1="${yPos}" x2="760" y2="${yPos}" class="grid-line"></line>${bg}<text x="${inside ? 56 : 32}" y="${yPos + 4}" text-anchor="${inside ? "start" : "end"}">${label}</text></g>`;
   }).join("");
   return `<g class="chart-axis"><line x1="44" y1="304" x2="760" y2="304"></line><line x1="44" y1="32" x2="44" y2="304"></line>${x}${y}<text x="402" y="344" text-anchor="middle" class="axis-title">${escapeHtml(xLabel)}</text><text x="12" y="170" text-anchor="middle" class="axis-title axis-title-y" transform="rotate(-90 12 170)">${escapeHtml(yLabel)}</text></g>`;
 }
