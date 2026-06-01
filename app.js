@@ -812,17 +812,26 @@ function drawChart(chart, primary, compare, range) {
 
 function drawTimeline(button, logs, range) {
   const bounds = timeBounds(range);
+  const yMax = button.type === "rating" ? button.ratingScale || 10 : 8;
   const points = logs.map((log, index) => {
     const x = scaleTime(log.timestamp, bounds, 44, 748);
     const y = button.type === "rating"
-      ? scale(Number(log.value), 1, button.ratingScale || 10, 296, 36)
+      ? scale(Number(log.value), 1, yMax, 296, 36)
       : 250 - (index % 9) * 18;
     return { x, y, value: log.value, label: formatShortDate(log.timestamp) };
   });
   const path = button.type === "rating" ? linePath(points) : "";
   const marks = points.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="4"><title>${escapeHtml(point.label)}${point.value ? ` · ${point.value}` : ""}</title></circle>`).join("");
+  const yTicks = button.type === "rating" ? numericTicks(1, yMax, 5) : numericTicks(0, 8, 5);
   return {
-    svg: chartSvg(`${axes()}${path ? `<path d="${path}" class="chart-line"></path>` : ""}<g class="chart-points">${marks}</g>`),
+    svg: chartSvg(`${axes({
+      xTicks: dateTicks(bounds.min, bounds.max),
+      yTicks,
+      yMin: button.type === "rating" ? 1 : 0,
+      yMax,
+      xLabel: "date",
+      yLabel: button.type === "rating" ? `value / ${yMax}` : "event stack"
+    })}${path ? `<path d="${path}" class="chart-line"></path>` : ""}<g class="chart-points">${marks}</g>`),
     insights: [
       `${logs.length} ${button.type === "rating" ? "ratings" : "events"} observed in the last ${range} days.`,
       button.type === "rating" ? `Recent value: ${logs[logs.length - 1].value}/${button.ratingScale || 10}.` : `Most recent: ${formatDateTime(logs[logs.length - 1].timestamp)}.`
@@ -876,7 +885,14 @@ function drawHourOfDay(button, logs) {
   const labels = buckets.filter((_, i) => i % 3 === 0).map((bucket, i) => `<text x="${48 + i * 87}" y="324">${bucket.label}</text>`).join("");
   const peak = buckets.reduce((best, item) => item.value > best.value ? item : best, buckets[0]);
   return {
-    svg: chartSvg(`${axes()}<g class="chart-bars">${bars}</g><g class="chart-labels">${labels}</g>`),
+    svg: chartSvg(`${axes({
+      xTicks: [],
+      yTicks: numericTicks(0, max, 5),
+      yMin: 0,
+      yMax: max,
+      xLabel: "hour of day",
+      yLabel: "logs"
+    })}<g class="chart-bars">${bars}</g><g class="chart-labels">${labels}</g>`),
     insights: [`Most observed hour: ${peak.label}:00 (${peak.value} logs).`, `Hour-of-day can show routine, clustering, or irregularity.`]
   };
 }
@@ -912,7 +928,14 @@ function drawValueDistribution(button, logs) {
   }).join("");
   const labels = buckets.map((bucket, index) => `<text x="${54 + index * (700 / bucketCount)}" y="324">${bucket.label}</text>`).join("");
   return {
-    svg: chartSvg(`${axes()}<g class="chart-bars">${bars}</g><g class="chart-labels">${labels}</g>`),
+    svg: chartSvg(`${axes({
+      xTicks: [],
+      yTicks: numericTicks(0, max, 5),
+      yMin: 0,
+      yMax: max,
+      xLabel: `rating value / ${scaleMax}`,
+      yLabel: "logs"
+    })}<g class="chart-bars">${bars}</g><g class="chart-labels">${labels}</g>`),
     insights: [`Average value: ${round(average(logs.map((log) => log.value)), 1)}/${scaleMax}.`, `Distribution shows where values cluster without ranking days.`]
   };
 }
@@ -922,6 +945,8 @@ function drawOverlay(primary, logs, compare, compareLogs, range) {
     return { svg: `<div class="empty-state compact"><h2>Choose a comparison</h2><p>Select a second button to overlay markers.</p></div>`, insights: ["Choose another button to look for visual overlap."] };
   }
   const bounds = timeBounds(range);
+  const yMin = primary.type === "rating" ? 1 : 0;
+  const yMax = primary.type === "rating" ? primary.ratingScale || 10 : 1;
   const primaryMarks = primary.type === "rating"
     ? `<path d="${linePath(logs.map((log) => ({ x: scaleTime(log.timestamp, bounds, 44, 748), y: scale(log.value, 1, primary.ratingScale || 10, 296, 36) })))}" class="chart-line"></path>`
     : logs.map((log) => `<circle cx="${scaleTime(log.timestamp, bounds, 44, 748)}" cy="226" r="4"></circle>`).join("");
@@ -930,7 +955,14 @@ function drawOverlay(primary, logs, compare, compareLogs, range) {
     return `<line x1="${x}" x2="${x}" y1="42" y2="300" class="overlay-marker"><title>${escapeHtml(compare.name)} · ${formatDateTime(log.timestamp)}</title></line>`;
   }).join("");
   return {
-    svg: chartSvg(`${axes()}<g class="chart-points">${primaryMarks}</g><g>${compareMarks}</g>`),
+    svg: chartSvg(`${axes({
+      xTicks: dateTicks(bounds.min, bounds.max),
+      yTicks: primary.type === "rating" ? numericTicks(yMin, yMax, 5) : [{ value: 0, label: "events" }],
+      yMin,
+      yMax,
+      xLabel: "date",
+      yLabel: primary.type === "rating" ? `${primary.name} value` : primary.name
+    })}<g class="chart-points">${primaryMarks}</g><g>${compareMarks}</g>`),
     insights: [`${compareLogs.length} ${compare.name} markers over ${logs.length} ${primary.name} logs.`, `Overlap is not causation. Use it as a clue, not proof.`]
   };
 }
@@ -966,7 +998,14 @@ function drawDaysWithWithout(primary, compare, range) {
     return `<g><rect x="${bar.x}" y="${296 - h}" width="120" height="${h}" rx="6"></rect><text x="${bar.x}" y="324">${bar.label} · n=${bar.n}</text><text x="${bar.x}" y="${286 - h}">${round(bar.value, 1)}</text></g>`;
   }).join("");
   return {
-    svg: chartSvg(`${axes()}<g class="chart-bars">${bars}</g>`),
+    svg: chartSvg(`${axes({
+      xTicks: [],
+      yTicks: numericTicks(0, max, 6),
+      yMin: 0,
+      yMax: max,
+      xLabel: `${trigger.name} days`,
+      yLabel: `${rating.name} avg / ${max}`
+    })}<g class="chart-bars">${bars}</g>`),
     insights: [`${rating.name} average with ${trigger.name}: ${round(withAvg, 1)}; without: ${round(withoutAvg, 1)}.`, `This is a possible association, not proof.`]
   };
 }
@@ -976,6 +1015,11 @@ function drawRaster(primary, range) {
   const days = daySeries(range);
   const cell = Math.max(7, Math.min(18, Math.floor(660 / days.length)));
   const rowH = 22;
+  const dayLabels = days.map((day, col) => {
+    const interval = range <= 7 ? 1 : range <= 30 ? 5 : 15;
+    if (col % interval !== 0 && col !== days.length - 1) return "";
+    return `<text x="${112 + col * cell}" y="${Math.max(330, 58 + active.length * rowH)}">${formatShortDate(day)}</text>`;
+  }).join("");
   const rows = active.map((button, row) => {
     const byDay = groupByDay(logsInRange(button.id, range));
     const cells = days.map((day, col) => {
@@ -988,7 +1032,7 @@ function drawRaster(primary, range) {
     return `<g class="${button.id === primary.id ? "raster-primary" : ""}"><text x="12" y="${47 + row * rowH}">${escapeHtml(button.name)}</text>${cells}</g>`;
   }).join("");
   return {
-    svg: chartSvg(`<g class="raster">${rows}</g>`, 800, Math.max(340, 70 + active.length * rowH)),
+    svg: chartSvg(`<g class="raster"><text x="112" y="20" class="chart-title-small">date columns · intensity = daily logs/value</text>${rows}<g class="chart-labels">${dayLabels}</g></g>`, 800, Math.max(360, 92 + active.length * rowH)),
     insights: [`Raster compares up to 12 active buttons across ${range} days.`, `Look for clusters and weekly texture, not perfect days.`]
   };
 }
@@ -1021,7 +1065,14 @@ function lineChart(points, minY, maxY, title, insights) {
   }));
   const marks = mapped.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="3"><title>${escapeHtml(point.label)} · ${round(point.value, 1)}</title></circle>`).join("");
   return {
-    svg: chartSvg(`${axes()}<path d="${linePath(mapped)}" class="chart-line"></path><g class="chart-points">${marks}</g><text x="44" y="24" class="chart-title-small">${escapeHtml(title)}</text>`),
+    svg: chartSvg(`${axes({
+      xTicks: dateTicks(bounds.min, bounds.max),
+      yTicks: numericTicks(minY, maxY, 5),
+      yMin: minY,
+      yMax: maxY,
+      xLabel: "date",
+      yLabel: title.includes("hours") ? "hours" : title.includes("average") ? "average value" : "rolling count"
+    })}<path d="${linePath(mapped)}" class="chart-line"></path><g class="chart-points">${marks}</g><text x="44" y="24" class="chart-title-small">${escapeHtml(title)}</text>`),
     insights
   };
 }
@@ -1030,8 +1081,41 @@ function chartSvg(content, width = 800, height = 350) {
   return `<svg class="chart-svg" viewBox="0 0 ${width} ${height}" role="img">${content}</svg>`;
 }
 
-function axes() {
-  return `<g class="chart-axis"><line x1="44" y1="304" x2="760" y2="304"></line><line x1="44" y1="32" x2="44" y2="304"></line></g>`;
+function dateTicks(min, max) {
+  return Array.from({ length: 5 }, (_, index) => {
+    const value = min + ((max - min) * index) / 4;
+    return {
+      x: scale(value, min, max, 44, 748),
+      label: formatShortDate(value)
+    };
+  });
+}
+
+function numericTicks(min, max, count) {
+  const safeMax = max === min ? min + 1 : max;
+  return Array.from({ length: count }, (_, index) => {
+    const value = min + ((safeMax - min) * index) / (count - 1);
+    return {
+      value,
+      label: formatAxisNumber(value)
+    };
+  });
+}
+
+function formatAxisNumber(value) {
+  if (Math.abs(value) >= 10 || Number.isInteger(value)) return String(Math.round(value));
+  return String(round(value, 1));
+}
+
+function axes({ xTicks = [], yTicks = [], yMin = 0, yMax = 1, xLabel = "", yLabel = "" } = {}) {
+  const x = xTicks.map((tick) => {
+    return `<g><line x1="${tick.x}" y1="304" x2="${tick.x}" y2="310"></line><text x="${tick.x}" y="326" text-anchor="middle">${escapeHtml(tick.label)}</text></g>`;
+  }).join("");
+  const y = yTicks.map((tick) => {
+    const yPos = scale(tick.value, yMin, yMax, 296, 36);
+    return `<g><line x1="38" y1="${yPos}" x2="44" y2="${yPos}"></line><line x1="44" y1="${yPos}" x2="760" y2="${yPos}" class="grid-line"></line><text x="32" y="${yPos + 4}" text-anchor="end">${escapeHtml(tick.label ?? formatAxisNumber(tick.value))}</text></g>`;
+  }).join("");
+  return `<g class="chart-axis"><line x1="44" y1="304" x2="760" y2="304"></line><line x1="44" y1="32" x2="44" y2="304"></line>${x}${y}<text x="402" y="344" text-anchor="middle" class="axis-title">${escapeHtml(xLabel)}</text><text x="12" y="170" text-anchor="middle" class="axis-title axis-title-y" transform="rotate(-90 12 170)">${escapeHtml(yLabel)}</text></g>`;
 }
 
 function linePath(points) {
