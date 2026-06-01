@@ -17,6 +17,10 @@ The guiding idea is simple:
 - Count, event, and rating button types.
 - Rolling targets over the last N days.
 - Immediate undo after each registration.
+- Discovery / Statistics view with local SVG charts.
+- 90-day synthetic demo dataset for trying pattern discovery.
+- Per-button reset, demo reset, and "keep buttons, delete logs" reset.
+- Philosophy / About page.
 - Light and dark mode.
 
 ## Run locally
@@ -35,7 +39,7 @@ http://localhost:5174/
 
 ## GitHub Pages
 
-This app is static HTML, CSS, and JavaScript. It can be published directly from the repository root on the `main` branch.
+This app is static HTML, CSS, and JavaScript. The public deployment is served through the `gh-pages` branch.
 
 Expected project URL:
 
@@ -44,6 +48,45 @@ https://valeriopaolini.github.io/IDIA/
 ```
 
 Because IDIA uses relative paths, it works from a GitHub Pages project path such as `/IDIA/`.
+
+## Discovery / Statistics
+
+The Discovery view is designed for observation, not scoring. It lets you:
+
+- choose a primary button;
+- choose a 7, 30, or 90 day range;
+- pick charts suggested by the button type;
+- optionally compare with a second button;
+- read short, cautious insights.
+
+Implemented charts:
+
+- Timeline for count, event, and rating logs.
+- Rolling frequency for count and event buttons.
+- Rolling average for rating buttons.
+- Raster map across recent days.
+- Hour-of-day distribution.
+- Gap between events.
+- Value distribution for ratings.
+- Overlay comparison.
+- Days with vs without comparison.
+- 24h-before-event summary for event buttons.
+
+Overlay and comparison views deliberately use cautious language. They can show a possible association, but do not claim causality.
+
+## Demo data
+
+On first launch, IDIA seeds a 90-day synthetic dataset with 18 buttons covering count, event, and rating examples. The dataset is adult and urban in tone, with recognizable patterns such as coffee in the morning, drinks on weekends, sleep quality after night out, and mood/energy variations.
+
+The demo exists so the Discovery view is useful immediately. It is not a recommendation about what to track.
+
+Reset options:
+
+- `Reset demo data`: replaces local data with the synthetic demo again.
+- `Keep buttons, delete logs`: keeps the schema and clears all observations.
+- `Delete everything`: clears local buttons and logs.
+- `Reset data` inside a button: clears only that button's logs.
+- `Duplicate` inside a button: copies the button configuration without data.
 
 ## Privacy model
 
