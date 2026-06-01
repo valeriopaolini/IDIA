@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f5efe3" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="IDIA">
+    <title>IDIA - I Did It Again</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icons/icon.svg">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">IDIA</p>
+          <h1>I Did It Again</h1>
+        </div>
+        <button class="icon-button" id="addButton" type="button" aria-label="Nuovo bottone">
+          <span aria-hidden="true">+</span>
+        </button>
+      </header>
+
+      <main>
+        <section class="view active" id="homeView" aria-labelledby="homeTab">
+          <div class="glass">
+            <div class="glass-rim" aria-hidden="true"></div>
+            <div id="marbleBoard" class="marble-board" aria-live="polite"></div>
+            <div class="glass-base" aria-hidden="true"></div>
+          </div>
+          <div id="emptyHome" class="empty-state" hidden>
+            <h2>Il bicchiere è vuoto</h2>
+            <p>Crea una biglia per registrare qualcosa che accade, senza streak e senza giudizi.</p>
+            <button class="primary-action" type="button" data-action="new-button">Crea la prima biglia</button>
+          </div>
+        </section>
+
+        <section class="view" id="historyView" aria-labelledby="historyTab">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Cronologia</p>
+              <h2>Eventi registrati</h2>
+            </div>
+            <button class="secondary-action" id="clearFilters" type="button">Tutti</button>
+          </div>
+          <div id="historyFilters" class="filter-row"></div>
+          <ol id="historyList" class="history-list"></ol>
+          <div id="emptyHistory" class="empty-state compact" hidden>
+            <h2>Nessun evento</h2>
+            <p>Quando tocchi una biglia, qui comparirà la traccia timestampata.</p>
+          </div>
+        </section>
+
+        <section class="view" id="backupView" aria-labelledby="backupTab">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Backup</p>
+              <h2>Export e import manuale</h2>
+            </div>
+          </div>
+          <div class="backup-actions">
+            <button class="primary-action" id="exportData" type="button">Esporta JSON</button>
+            <label class="secondary-action file-label">
+              Importa JSON
+              <input id="importData" type="file" accept="application/json,.json">
+            </label>
+          </div>
+          <div class="instructions">
+            <h3>Backup su iPhone e iPad</h3>
+            <p>Il file esportato va salvato manualmente in Files, iCloud Drive o in un’altra posizione scelta da te. IDIA non invia dati a server, non crea account e non sincronizza automaticamente.</p>
+            <p>L’import unisce i dati al database locale e ignora i duplicati usando gli UUID di bottoni ed eventi.</p>
+          </div>
+          <div class="data-card">
+            <dl>
+              <div><dt>Bottoni attivi</dt><dd id="activeCount">0</dd></div>
+              <div><dt>Eventi totali</dt><dd id="eventCount">0</dd></div>
+              <div><dt>Archivio locale</dt><dd>IndexedDB</dd></div>
+            </dl>
+          </div>
+        </section>
+      </main>
+
+      <nav class="tabbar" aria-label="Navigazione principale">
+        <button id="homeTab" class="tab active" type="button" data-view="homeView">Home</button>
+        <button id="historyTab" class="tab" type="button" data-view="historyView">Cronologia</button>
+        <button id="backupTab" class="tab" type="button" data-view="backupView">Backup</button>
+      </nav>
+    </div>
+
+    <dialog id="buttonDialog" class="sheet">
+      <form id="buttonForm" method="dialog">
+        <div class="sheet-header">
+          <div>
+            <p class="eyebrow">Biglia</p>
+            <h2 id="buttonDialogTitle">Nuovo bottone</h2>
+          </div>
+          <button class="icon-button subtle" type="button" data-action="close-dialog" aria-label="Chiudi">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+
+        <input type="hidden" id="buttonId">
+        <label>
+          Nome
+          <input id="buttonName" name="name" type="text" maxlength="28" required placeholder="Caffè">
+        </label>
+
+        <fieldset>
+          <legend>Tipo</legend>
+          <div class="segmented">
+            <label><input type="radio" name="type" value="count" checked> Count</label>
+            <label><input type="radio" name="type" value="event"> Event</label>
+            <label><input type="radio" name="type" value="rating"> Rating</label>
+          </div>
+        </fieldset>
+
+        <label id="ratingScaleWrap" hidden>
+          Scala rating
+          <select id="ratingScale">
+            <option value="5">1-5</option>
+            <option value="10">1-10</option>
+            <option value="100">1-100</option>
+          </select>
+        </label>
+
+        <fieldset>
+          <legend>Dimensione</legend>
+          <div class="segmented">
+            <label><input type="radio" name="size" value="small"> Small</label>
+            <label><input type="radio" name="size" value="medium" checked> Medium</label>
+            <label><input type="radio" name="size" value="large"> Large</label>
+          </div>
+        </fieldset>
+
+        <label>
+          Colore
+          <input id="buttonColor" type="color" value="#3b82f6">
+        </label>
+
+        <fieldset>
+          <legend>Target rolling</legend>
+          <label>
+            Tipo target
+            <select id="targetMode">
+              <option value="">Nessun target</option>
+              <option value="atLeast">Almeno N volte negli ultimi M giorni</option>
+              <option value="atMost">Massimo N volte negli ultimi M giorni</option>
+            </select>
+          </label>
+          <div class="target-grid">
+            <label>
+              N
+              <input id="targetCount" type="number" min="1" max="999" inputmode="numeric" value="3">
+            </label>
+            <label>
+              M giorni
+              <input id="targetDays" type="number" min="1" max="365" inputmode="numeric" value="7">
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="sheet-actions">
+          <button id="archiveButton" class="danger-action" type="button" hidden>Archivia</button>
+          <button class="secondary-action" type="button" data-action="close-dialog">Annulla</button>
+          <button class="primary-action" type="submit">Salva</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="ratingDialog" class="sheet">
+      <div class="sheet-header">
+        <div>
+          <p class="eyebrow">Rating</p>
+          <h2 id="ratingTitle">Registra voto</h2>
+        </div>
+        <button class="icon-button subtle" type="button" data-action="close-rating" aria-label="Chiudi">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <div id="ratingChoices" class="rating-choices"></div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "IDIA - I Did It Again",
+  "short_name": "IDIA",
+  "description": "Traccia eventi personali localmente, senza account e senza streak.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f5efe3",
+  "theme_color": "#f5efe3",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

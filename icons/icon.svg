@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="IDIA">
+  <rect width="512" height="512" rx="112" fill="#f5efe3"/>
+  <path d="M116 126c0 158 31 258 140 258s140-100 140-258" fill="none" stroke="#1f2933" stroke-width="24" stroke-linecap="round"/>
+  <ellipse cx="256" cy="126" rx="140" ry="34" fill="none" stroke="#1f2933" stroke-width="24"/>
+  <circle cx="190" cy="282" r="62" fill="#2563eb"/>
+  <circle cx="296" cy="250" r="78" fill="#dc2626"/>
+  <circle cx="246" cy="174" r="52" fill="#16a34a"/>
+  <circle cx="166" cy="258" r="18" fill="#ffffff" opacity=".82"/>
+  <circle cx="270" cy="220" r="22" fill="#ffffff" opacity=".78"/>
+  <circle cx="228" cy="154" r="15" fill="#ffffff" opacity=".78"/>
+</svg>
