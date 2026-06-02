@@ -32,6 +32,18 @@
 
       <main>
         <section class="view active" id="homeView" aria-labelledby="homeTab">
+          <div class="home-controls">
+            <label>
+              Ordine
+              <select id="bubbleOrderMode">
+                <option value="oldest">Oldest First</option>
+                <option value="newest">Newest First</option>
+                <option value="alphabetical">Alphabetical</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <button class="secondary-action" id="openReorder" type="button">Riordina</button>
+          </div>
           <div class="marble-stage">
             <div id="marbleBoard" class="marble-board" aria-live="polite"></div>
           </div>
@@ -268,6 +280,22 @@
         </button>
       </div>
       <div id="ratingChoices" class="rating-choices"></div>
+    </dialog>
+
+    <dialog id="reorderDialog" class="sheet">
+      <div class="sheet-header">
+        <div>
+          <p class="eyebrow">Custom</p>
+          <h2>Ordine bolle</h2>
+        </div>
+        <button class="icon-button subtle" type="button" data-action="close-reorder" aria-label="Chiudi">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <ol id="reorderList" class="reorder-list" aria-label="Ordine personalizzato delle bolle"></ol>
+      <div class="sheet-actions">
+        <button class="primary-action" type="button" data-action="close-reorder">Fine</button>
+      </div>
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

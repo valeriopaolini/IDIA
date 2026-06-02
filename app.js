@@ -3,6 +3,8 @@ const DB_VERSION = 1;
 const STORE_BUTTONS = "buttons";
 const STORE_LOGS = "logs";
 const MS_DAY = 24 * 60 * 60 * 1000;
+const ORDER_MODE_KEY = "idia-bubble-order-mode";
+const ORDER_MODES = ["custom", "alphabetical", "oldest", "newest"];
 const DEMO_BUTTONS = [
   { slug: "sigarettes", name: "Sigarettes", type: "count", iconId: "cigarette", themeId: "red", size: "large", target: { mode: "atMost", count: 40, days: 7 } },
   { slug: "coffee", name: "Coffee", type: "count", iconId: "coffee", themeId: "amber", size: "medium", target: { mode: "atMost", count: 21, days: 7 } },
@@ -105,6 +107,7 @@ let db;
 let state = {
   buttons: [],
   logs: [],
+  orderMode: loadOrderMode(),
   activeView: "homeView",
   historyFilter: null,
   discovery: {
@@ -122,6 +125,8 @@ let state = {
 const els = {
   dailySplash: document.querySelector("#dailySplash"),
   addButton: document.querySelector("#addButton"),
+  bubbleOrderMode: document.querySelector("#bubbleOrderMode"),
+  openReorder: document.querySelector("#openReorder"),
   marbleBoard: document.querySelector("#marbleBoard"),
   emptyHome: document.querySelector("#emptyHome"),
   historyFilters: document.querySelector("#historyFilters"),
@@ -164,6 +169,8 @@ const els = {
   ratingDialog: document.querySelector("#ratingDialog"),
   ratingTitle: document.querySelector("#ratingTitle"),
   ratingChoices: document.querySelector("#ratingChoices"),
+  reorderDialog: document.querySelector("#reorderDialog"),
+  reorderList: document.querySelector("#reorderList"),
   toast: document.querySelector("#toast")
 };
 
@@ -252,6 +259,11 @@ function bindEvents() {
   document.querySelectorAll("[data-action='close-rating']").forEach((button) => {
     button.addEventListener("click", () => els.ratingDialog.close());
   });
+  document.querySelectorAll("[data-action='close-reorder']").forEach((button) => {
+    button.addEventListener("click", () => els.reorderDialog.close());
+  });
+  els.bubbleOrderMode.addEventListener("change", () => setOrderMode(els.bubbleOrderMode.value));
+  els.openReorder.addEventListener("click", openReorderDialog);
   els.buttonForm.addEventListener("submit", saveButton);
   els.buttonName.addEventListener("input", () => {
     if (els.buttonId.value) return;
@@ -303,7 +315,7 @@ function bindEvents() {
 
 async function refresh() {
   const [buttons, logs] = await Promise.all([getAll(STORE_BUTTONS), getAll(STORE_LOGS)]);
-  state.buttons = buttons.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  state.buttons = buttons.sort(compareOldest);
   state.logs = logs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   render();
 }
@@ -321,8 +333,48 @@ function render() {
   });
 }
 
+function getOrderedActiveButtons() {
+  return orderButtons(state.buttons.filter((button) => !button.archived));
+}
+
+function orderButtons(buttons, mode = state.orderMode) {
+  const list = [...buttons];
+  if (mode === "alphabetical") return list.sort(compareAlphabetical);
+  if (mode === "newest") return list.sort(compareNewest);
+  if (mode === "custom") return list.sort(compareCustom);
+  return list.sort(compareOldest);
+}
+
+function compareCustom(a, b) {
+  return customOrderValue(a) - customOrderValue(b) || compareOldest(a, b);
+}
+
+function customOrderValue(button) {
+  return Number.isFinite(button.customOrder) ? button.customOrder : Number.MAX_SAFE_INTEGER;
+}
+
+function nextCustomOrder() {
+  const values = state.buttons
+    .filter((button) => !button.archived && Number.isFinite(button.customOrder))
+    .map((button) => button.customOrder);
+  return values.length ? Math.max(...values) + 1 : state.buttons.filter((button) => !button.archived).length;
+}
+
+function compareOldest(a, b) {
+  return String(a.createdAt || "").localeCompare(String(b.createdAt || "")) || compareAlphabetical(a, b);
+}
+
+function compareNewest(a, b) {
+  return String(b.createdAt || "").localeCompare(String(a.createdAt || "")) || compareAlphabetical(a, b);
+}
+
+function compareAlphabetical(a, b) {
+  return String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" }) || String(a.id || "").localeCompare(String(b.id || ""));
+}
+
 function renderHome() {
-  const activeButtons = state.buttons.filter((button) => !button.archived);
+  const activeButtons = getOrderedActiveButtons();
+  els.bubbleOrderMode.value = state.orderMode;
   els.marbleBoard.innerHTML = "";
   els.emptyHome.hidden = activeButtons.length > 0;
   activeButtons.forEach((rawButton, index) => {
@@ -407,7 +459,7 @@ function getTargetState(button) {
 }
 
 function renderHistory() {
-  const activeButtons = state.buttons.filter((button) => !button.archived);
+  const activeButtons = getOrderedActiveButtons();
   els.historyFilters.innerHTML = "";
   activeButtons.forEach((button) => {
     const chip = document.createElement("button");
@@ -442,7 +494,7 @@ function renderHistory() {
 }
 
 function renderDiscovery() {
-  const activeButtons = state.buttons.filter((button) => !button.archived);
+  const activeButtons = getOrderedActiveButtons();
   if (!activeButtons.length) {
     els.primaryButtonSelect.innerHTML = "";
     els.compareButtonSelect.innerHTML = "";
@@ -551,6 +603,123 @@ function renderBackupStats() {
   els.eventCount.textContent = state.logs.length;
 }
 
+async function setOrderMode(mode) {
+  const previousMode = state.orderMode;
+  state.orderMode = ORDER_MODES.includes(mode) ? mode : "oldest";
+  saveOrderMode(state.orderMode);
+  if (state.orderMode === "custom") await ensureCustomOrder(previousMode);
+  render();
+}
+
+async function ensureCustomOrder(baseMode = state.orderMode) {
+  const activeRaw = state.buttons.filter((button) => !button.archived);
+  const hasMissingOrder = activeRaw.some((button) => !Number.isFinite(button.customOrder));
+  const active = hasMissingOrder ? orderButtons(activeRaw, baseMode === "custom" ? "oldest" : baseMode) : orderButtons(activeRaw, "custom");
+  const updates = active.map((button, index) => {
+    if (button.customOrder === index) return null;
+    const updated = { ...button, customOrder: index, updatedAt: new Date().toISOString() };
+    state.buttons = state.buttons.map((item) => item.id === button.id ? updated : item);
+    return put(STORE_BUTTONS, updated);
+  }).filter(Boolean);
+  await Promise.all(updates);
+}
+
+function openReorderDialog() {
+  const previousMode = state.orderMode;
+  if (state.orderMode !== "custom") {
+    state.orderMode = "custom";
+    saveOrderMode("custom");
+  }
+  ensureCustomOrder(previousMode).then(() => {
+    render();
+    renderReorderList();
+    els.reorderDialog.showModal();
+  });
+}
+
+function renderReorderList() {
+  const buttons = orderButtons(state.buttons.filter((button) => !button.archived), "custom").map(withVisualDefaults);
+  els.reorderList.innerHTML = "";
+  buttons.forEach((button, index) => {
+    const item = document.createElement("li");
+    item.className = "reorder-item";
+    item.draggable = true;
+    item.dataset.buttonId = button.id;
+    item.innerHTML = `
+      <span class="drag-handle" aria-hidden="true">☰</span>
+      <span class="reorder-icon" aria-hidden="true" style="--marble-color: ${escapeHtml(themeColor(button.themeId, button.color))}">${iconSvg(button.iconId)}</span>
+      <span>${escapeHtml(button.name)}</span>
+      <small>${index + 1}</small>
+    `;
+    item.addEventListener("dragstart", handleReorderDragStart);
+    item.addEventListener("dragover", handleReorderDragOver);
+    item.addEventListener("drop", handleReorderDrop);
+    item.addEventListener("dragend", clearReorderDragState);
+    els.reorderList.append(item);
+  });
+}
+
+function handleReorderDragStart(event) {
+  event.currentTarget.classList.add("dragging");
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", event.currentTarget.dataset.buttonId);
+}
+
+function handleReorderDragOver(event) {
+  event.preventDefault();
+  const dragging = els.reorderList.querySelector(".dragging");
+  const target = event.target.closest(".reorder-item");
+  if (!dragging || !target || dragging === target) return;
+  const rect = target.getBoundingClientRect();
+  const placeAfter = event.clientY > rect.top + rect.height / 2;
+  els.reorderList.insertBefore(dragging, placeAfter ? target.nextSibling : target);
+}
+
+async function handleReorderDrop(event) {
+  event.preventDefault();
+  await saveCustomOrderFromList();
+}
+
+function clearReorderDragState() {
+  els.reorderList.querySelectorAll(".dragging").forEach((item) => item.classList.remove("dragging"));
+}
+
+async function saveCustomOrderFromList() {
+  const ids = [...els.reorderList.querySelectorAll("[data-button-id]")].map((item) => item.dataset.buttonId);
+  const now = new Date().toISOString();
+  const byId = new Map(state.buttons.map((button) => [button.id, button]));
+  const updates = ids.map((id, index) => {
+    const button = byId.get(id);
+    if (!button || button.customOrder === index) return null;
+    const updated = { ...button, customOrder: index, updatedAt: now };
+    byId.set(id, updated);
+    return put(STORE_BUTTONS, updated);
+  }).filter(Boolean);
+  state.buttons = state.buttons.map((button) => byId.get(button.id) || button);
+  state.orderMode = "custom";
+  saveOrderMode("custom");
+  await Promise.all(updates);
+  render();
+  renderReorderList();
+}
+
+function loadOrderMode() {
+  try {
+    const mode = localStorage.getItem(ORDER_MODE_KEY);
+    return ORDER_MODES.includes(mode) ? mode : "oldest";
+  } catch (error) {
+    return "oldest";
+  }
+}
+
+function saveOrderMode(mode) {
+  try {
+    localStorage.setItem(ORDER_MODE_KEY, mode);
+  } catch (error) {
+    // LocalStorage can be unavailable in private browsing; the in-memory state still works.
+  }
+}
+
 function setView(viewId) {
   state.activeView = viewId;
   render();
@@ -607,6 +776,7 @@ async function saveButton(event) {
   const now = new Date().toISOString();
   const id = els.buttonId.value || crypto.randomUUID();
   const existing = state.buttons.find((button) => button.id === id);
+  const isNew = !existing;
   const type = getRadio("type");
   const targetMode = els.targetMode.value;
   const button = {
@@ -626,7 +796,8 @@ async function saveButton(event) {
     } : null,
     createdAt: existing?.createdAt || now,
     updatedAt: now,
-    archived: existing?.archived || false
+    archived: existing?.archived || false,
+    customOrder: existing?.customOrder ?? (isNew && state.orderMode === "custom" ? nextCustomOrder() : undefined)
   };
   await put(STORE_BUTTONS, button);
   els.buttonDialog.close();
@@ -666,7 +837,8 @@ async function duplicateCurrentButton() {
     name: `${button.name} copy`.slice(0, 28),
     createdAt: now,
     updatedAt: now,
-    archived: false
+    archived: false,
+    customOrder: state.orderMode === "custom" ? nextCustomOrder() : undefined
   });
   els.buttonDialog.close();
   await refresh();
@@ -754,9 +926,11 @@ async function importData(event) {
     let importedLogs = 0;
     const existingButtonIds = new Set(state.buttons.map((button) => button.id));
     const existingLogIds = new Set(state.logs.map((log) => log.id));
+    let customAppendOrder = nextCustomOrder();
     for (const button of buttons) {
       if (!button.id || existingButtonIds.has(button.id)) continue;
-      await put(STORE_BUTTONS, sanitizeButton(button));
+      await put(STORE_BUTTONS, sanitizeButton(button, state.orderMode === "custom" ? customAppendOrder : undefined));
+      customAppendOrder += 1;
       importedButtons += 1;
     }
     for (const log of logs) {
@@ -775,7 +949,7 @@ async function importData(event) {
 
 async function seedDemoData() {
   const now = new Date();
-  const buttons = DEMO_BUTTONS.map((button) => {
+  const buttons = DEMO_BUTTONS.map((button, index) => {
     const createdAt = new Date(now.getTime() - 90 * MS_DAY).toISOString();
     return {
       id: demoButtonId(button.slug),
@@ -791,6 +965,7 @@ async function seedDemoData() {
       createdAt,
       updatedAt: createdAt,
       archived: false,
+      customOrder: index,
       demo: true
     };
   });
@@ -908,10 +1083,13 @@ function demoButtonId(slug) {
   return uuidFromString(`idia-demo-button-${slug}`);
 }
 
-function sanitizeButton(button) {
+function sanitizeButton(button, customOrderOverride) {
   const now = new Date().toISOString();
   const iconId = ICON_PATHS[button.iconId] ? button.iconId : suggestIconId(button.name || "");
   const themeId = THEMES[button.themeId] ? button.themeId : suggestThemeId(button.name || "", button.color);
+  const customOrder = Number.isFinite(customOrderOverride)
+    ? customOrderOverride
+    : (Number.isFinite(Number(button.customOrder)) ? Number(button.customOrder) : undefined);
   return {
     id: String(button.id),
     name: String(button.name || "Senza nome").slice(0, 28),
@@ -925,7 +1103,8 @@ function sanitizeButton(button) {
     target: sanitizeTarget(button.target),
     createdAt: button.createdAt || now,
     updatedAt: button.updatedAt || now,
-    archived: Boolean(button.archived)
+    archived: Boolean(button.archived),
+    customOrder
   };
 }
 
@@ -1262,7 +1441,7 @@ function drawDaysWithWithout(primary, compare, range) {
 }
 
 function drawRaster(primary, range) {
-  const active = state.buttons.filter((button) => !button.archived).slice(0, 12);
+  const active = getOrderedActiveButtons().slice(0, 12);
   const days = daySeries(range);
   const cell = Math.max(7, Math.min(18, Math.floor(660 / days.length)));
   const rowH = 22;
@@ -1293,7 +1472,7 @@ function drawBeforeEvent(primary, logs) {
   const latest = logs[logs.length - 1];
   const end = new Date(latest.timestamp).getTime();
   const start = end - MS_DAY;
-  const lines = state.buttons.filter((button) => !button.archived && button.id !== primary.id).map((button) => {
+  const lines = getOrderedActiveButtons().filter((button) => button.id !== primary.id).map((button) => {
     const recent = state.logs.filter((log) => log.buttonId === button.id && new Date(log.timestamp).getTime() >= start && new Date(log.timestamp).getTime() < end);
     if (!recent.length) return null;
     if (button.type === "rating") return `${button.name}: ${recent[recent.length - 1].value}/${button.ratingScale || 10}`;

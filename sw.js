@@ -1,4 +1,4 @@
-const CACHE_NAME = "idia-shell-v7";
+const CACHE_NAME = "idia-shell-v8";
 const ASSETS = [
   "./",
   "./index.html",
