@@ -399,6 +399,7 @@ h3 {
 }
 
 .chart-shell {
+  position: relative;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-strong);
@@ -426,9 +427,28 @@ h3 {
 }
 
 .chart-canvas {
+  position: relative;
   min-height: 320px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  max-width: 170px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-strong), transparent 2%);
+  box-shadow: var(--shadow);
+  font-size: 0.78rem;
+  font-weight: 850;
+  line-height: 1.25;
+  pointer-events: none;
 }
 
 .chart-svg {

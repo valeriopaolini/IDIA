@@ -143,6 +143,7 @@ const els = {
   chartTitle: document.querySelector("#chartTitle"),
   chartNote: document.querySelector("#chartNote"),
   chartCanvas: document.querySelector("#chartCanvas"),
+  chartTooltip: document.querySelector("#chartTooltip"),
   insightList: document.querySelector("#insightList"),
   buttonDialog: document.querySelector("#buttonDialog"),
   buttonForm: document.querySelector("#buttonForm"),
@@ -287,6 +288,12 @@ function bindEvents() {
     state.discovery.chart = els.chartSelect.value;
     renderDiscoveryChart();
   });
+  els.chartCanvas.addEventListener("pointerover", handleChartPointer);
+  els.chartCanvas.addEventListener("pointermove", handleChartPointer);
+  els.chartCanvas.addEventListener("pointerout", (event) => {
+    if (!event.relatedTarget || !els.chartCanvas.contains(event.relatedTarget)) hideChartTooltip();
+  });
+  els.chartCanvas.addEventListener("click", handleChartPointer);
   els.exportData.addEventListener("click", exportData);
   els.importData.addEventListener("change", importData);
   els.resetDemoData.addEventListener("click", resetDemoData);
@@ -481,7 +488,32 @@ function renderDiscoveryChart() {
   els.chartNote.hidden = chart !== "overlay" && chart !== "days-with-without" && chart !== "before-event";
   const result = drawChart(chart, primary, compare, range);
   els.chartCanvas.innerHTML = result.svg;
+  hideChartTooltip();
   els.insightList.innerHTML = result.insights.map((item) => `<p>${escapeHtml(item)}</p>`).join("");
+}
+
+function handleChartPointer(event) {
+  const target = event.target.closest("[data-tip]");
+  if (!target || !els.chartCanvas.contains(target)) {
+    if (event.type === "click") hideChartTooltip();
+    return;
+  }
+  showChartTooltip(target.dataset.tip, event);
+}
+
+function showChartTooltip(text, event) {
+  if (!els.chartTooltip || !text) return;
+  const wrap = els.chartCanvas.getBoundingClientRect();
+  const x = event.clientX - wrap.left + els.chartCanvas.scrollLeft + els.chartCanvas.offsetLeft;
+  const y = event.clientY - wrap.top + els.chartCanvas.scrollTop + els.chartCanvas.offsetTop;
+  els.chartTooltip.textContent = text;
+  els.chartTooltip.hidden = false;
+  els.chartTooltip.style.transform = `translate(${Math.min(x + 12, els.chartCanvas.offsetLeft + wrap.width - 180)}px, ${Math.max(y - 42, els.chartCanvas.offsetTop + 8)}px)`;
+}
+
+function hideChartTooltip() {
+  if (!els.chartTooltip) return;
+  els.chartTooltip.hidden = true;
 }
 
 function renderIconChoices(query = "") {
@@ -1023,7 +1055,7 @@ function drawTimeline(button, logs, range) {
     return { x, y, value: log.value, label: formatShortDate(log.timestamp) };
   });
   const path = button.type === "rating" ? linePath(points) : "";
-  const marks = points.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="4"><title>${escapeHtml(point.label)}${point.value ? ` · ${point.value}` : ""}</title></circle>`).join("");
+  const marks = points.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="4" data-tip="${escapeHtml(`${point.label} · ${button.type === "rating" ? `value ${point.value}` : "logged event"}`)}"></circle>`).join("");
   const yTicks = button.type === "rating" ? numericTicks(1, yMax, 5) : numericTicks(0, 8, 5);
   return {
     svg: chartSvg(`${axes({
@@ -1082,7 +1114,7 @@ function drawHourOfDay(button, logs) {
   const bars = buckets.map((bucket, index) => {
     const x = 44 + index * 29;
     const h = scale(bucket.value, 0, max, 0, 230);
-    return `<rect x="${x}" y="${296 - h}" width="18" height="${h}" rx="3"><title>${bucket.label}:00 · ${bucket.value}</title></rect>`;
+    return `<rect x="${x}" y="${296 - h}" width="18" height="${h}" rx="3" data-tip="${escapeHtml(`${bucket.label}:00 · ${bucket.value} logs`)}"></rect>`;
   }).join("");
   const labels = buckets.filter((_, i) => i % 3 === 0).map((bucket, i) => `<text x="${48 + i * 87}" y="324">${bucket.label}</text>`).join("");
   const peak = buckets.reduce((best, item) => item.value > best.value ? item : best, buckets[0]);
@@ -1126,7 +1158,7 @@ function drawValueDistribution(button, logs) {
   const bars = buckets.map((bucket, index) => {
     const x = 50 + index * (700 / bucketCount);
     const h = scale(bucket.value, 0, max, 0, 230);
-    return `<rect x="${x}" y="${296 - h}" width="${width}" height="${h}" rx="4"><title>${bucket.label} · ${bucket.value}</title></rect>`;
+    return `<rect x="${x}" y="${296 - h}" width="${width}" height="${h}" rx="4" data-tip="${escapeHtml(`value ${bucket.label} · ${bucket.value} logs`)}"></rect>`;
   }).join("");
   const labels = buckets.map((bucket, index) => `<text x="${54 + index * (700 / bucketCount)}" y="324">${bucket.label}</text>`).join("");
   return {
@@ -1158,12 +1190,14 @@ function drawOverlay(primary, logs, compare, compareLogs, range) {
   const primaryPoints = primarySeries.map((point) => ({
     x: scale(point.date.getTime(), bounds.min, bounds.max, 44, 748),
     y: scale(point.value, yMin, yMax, 296, 36),
-    value: point.value
+    value: point.value,
+    label: formatShortDate(point.date)
   }));
   const comparePoints = compareSeries.map((point) => ({
     x: scale(point.date.getTime(), bounds.min, bounds.max, 44, 748),
     y: scale(point.value, yMin, yMax, 296, 36),
-    value: point.value
+    value: point.value,
+    label: formatShortDate(point.date)
   }));
   const primaryMarks = pointMarkers(primaryPoints, primary.name, "primary");
   const compareMarks = pointMarkers(comparePoints, compare.name, "compare");
@@ -1212,7 +1246,7 @@ function drawDaysWithWithout(primary, compare, range) {
     { label: "Without", value: withoutAvg, n: withoutValues.length, x: 430 }
   ].map((bar) => {
     const h = scale(bar.value, 0, max, 0, 220);
-    return `<g><rect x="${bar.x}" y="${296 - h}" width="120" height="${h}" rx="6"></rect><text x="${bar.x}" y="324">${bar.label} · n=${bar.n}</text><text x="${bar.x}" y="${286 - h}">${round(bar.value, 1)}</text></g>`;
+    return `<g><rect x="${bar.x}" y="${296 - h}" width="120" height="${h}" rx="6" data-tip="${escapeHtml(`${bar.label} · avg ${round(bar.value, 1)} · n=${bar.n}`)}"></rect><text x="${bar.x}" y="324">${bar.label} · n=${bar.n}</text><text x="${bar.x}" y="${286 - h}">${round(bar.value, 1)}</text></g>`;
   }).join("");
   return {
     svg: chartSvg(`${axes({
@@ -1244,7 +1278,7 @@ function drawRaster(primary, range) {
       const intensity = button.type === "rating" && values.length
         ? average(values.map((log) => log.value)) / (button.ratingScale || 10)
         : Math.min(1, values.length / 6);
-      return `<rect x="${112 + col * cell}" y="${34 + row * rowH}" width="${cell - 1}" height="16" rx="2" opacity="${values.length ? 0.24 + intensity * 0.76 : 0.08}"><title>${escapeHtml(button.name)} · ${dateKey(day)} · ${values.length ? values.length : "empty"}</title></rect>`;
+      return `<rect x="${112 + col * cell}" y="${34 + row * rowH}" width="${cell - 1}" height="16" rx="2" opacity="${values.length ? 0.24 + intensity * 0.76 : 0.08}" data-tip="${escapeHtml(`${button.name} · ${dateKey(day)} · ${values.length ? values.length : "empty"}`)}"></rect>`;
     }).join("");
     return `<g class="${button.id === primary.id ? "raster-primary" : ""}"><text x="12" y="${47 + row * rowH}">${escapeHtml(button.name)}</text>${cells}</g>`;
   }).join("");
@@ -1280,7 +1314,7 @@ function lineChart(points, minY, maxY, title, insights) {
     value: point.value,
     label: formatShortDate(point.date)
   }));
-  const marks = mapped.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="3"><title>${escapeHtml(point.label)} · ${round(point.value, 1)}</title></circle>`).join("");
+  const marks = mapped.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="3" data-tip="${escapeHtml(`${point.label} · ${round(point.value, 1)}`)}"></circle>`).join("");
   return {
     svg: chartSvg(`${axes({
       xTicks: dateTicks(bounds.min, bounds.max),
@@ -1308,7 +1342,7 @@ function dailySeries(button, logs, days) {
 
 function pointMarkers(points, label, variant) {
   return points.map((point) => {
-    return `<circle class="overlay-${variant}-point" cx="${point.x}" cy="${point.y}" r="3"><title>${escapeHtml(label)} · ${round(point.value, 1)}</title></circle>`;
+    return `<circle class="overlay-${variant}-point" cx="${point.x}" cy="${point.y}" r="3" data-tip="${escapeHtml(`${label} · ${point.label || ""} · ${round(point.value, 1)}`)}"></circle>`;
   }).join("");
 }
 
