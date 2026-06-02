@@ -268,8 +268,22 @@ h3 {
 
 .marble-content {
   display: grid;
-  gap: 4px;
+  gap: 3px;
+  justify-items: center;
   max-width: 100%;
+}
+
+.marble-icon {
+  display: grid;
+  place-items: center;
+  width: 48%;
+  aspect-ratio: 1;
+}
+
+.marble-icon svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
 }
 
 .marble-name,
@@ -282,19 +296,35 @@ h3 {
 }
 
 .marble-name {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 900;
   line-height: 1.04;
 }
 
 .marble-value {
-  font-size: 1.55rem;
+  font-size: 1.18rem;
   font-weight: 950;
   line-height: 1;
 }
 
+.marble.large .marble-icon {
+  width: 52%;
+}
+
+.marble.large .marble-value {
+  font-size: 1.35rem;
+}
+
+.marble.small .marble-icon {
+  width: 54%;
+}
+
+.marble.small .marble-name {
+  font-size: 0.62rem;
+}
+
 .marble.small .marble-value {
-  font-size: 1.15rem;
+  font-size: 0.92rem;
 }
 
 .marble-target {
@@ -494,6 +524,12 @@ h3 {
   font-weight: 900;
 }
 
+.chart-legend svg {
+  color: var(--muted);
+  width: 24px;
+  height: 24px;
+}
+
 .raster-primary text {
   fill: var(--text);
   font-weight: 950;
@@ -563,6 +599,26 @@ h3 {
 .history-item strong,
 .history-item time {
   display: block;
+}
+
+.history-title,
+#chartTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.15em;
+  height: 1.15em;
+  flex: 0 0 auto;
+}
+
+.inline-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .history-item span,
@@ -669,6 +725,7 @@ h3 {
 }
 
 .sheet input[type="text"],
+.sheet input[type="search"],
 .sheet input[type="number"],
 .sheet select {
   width: 100%;
@@ -678,6 +735,55 @@ h3 {
   padding: 0 12px;
   color: var(--text);
   background: var(--surface-strong);
+}
+
+.icon-choice-grid {
+  display: grid;
+  gap: 12px;
+  max-height: 250px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.icon-category {
+  display: grid;
+  gap: 8px;
+}
+
+.icon-category p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.icon-category div {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+  gap: 8px;
+}
+
+.icon-choice {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--surface-strong);
+}
+
+.icon-choice svg {
+  width: 23px;
+  height: 23px;
+}
+
+.icon-choice.selected {
+  color: #fff;
+  background: var(--text);
+  outline: 2px solid var(--accent);
 }
 
 .sheet input[type="color"] {

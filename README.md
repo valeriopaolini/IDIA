@@ -15,6 +15,8 @@ The guiding idea is simple:
 - Manual JSON export and import.
 - Deduplicated imports by UUID.
 - Count, event, and rating button types.
+- Icon-centric bubbles with stored `iconId` and `themeId`.
+- Curated in-app icon catalog with keyword suggestions.
 - Rolling targets over the last N days.
 - Immediate undo after each registration.
 - Discovery / Statistics view with local SVG charts.
@@ -120,6 +122,8 @@ It does not run on GitHub servers. GitHub Pages only serves the static files.
 - `type`: `count`, `event`, or `rating`
 - `ratingScale`: optional, `5`, `10`, or `100`
 - `color`: marble color
+- `iconId`: internal icon identifier, such as `coffee`, `moon`, or `brain-circuit`
+- `themeId`: visual theme identifier, such as `amber`, `blue`, or `violet`
 - `icon`: optional placeholder for future versions
 - `size`: `small`, `medium`, or `large`
 - `target`: optional rolling target

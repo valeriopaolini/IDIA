@@ -4,24 +4,24 @@ const STORE_BUTTONS = "buttons";
 const STORE_LOGS = "logs";
 const MS_DAY = 24 * 60 * 60 * 1000;
 const DEMO_BUTTONS = [
-  { slug: "sigarettes", name: "Sigarettes", type: "count", color: "#7f1d1d", size: "large", target: { mode: "atMost", count: 40, days: 7 } },
-  { slug: "coffee", name: "Coffee", type: "count", color: "#92400e", size: "medium", target: { mode: "atMost", count: 21, days: 7 } },
-  { slug: "drinks", name: "Drinks", type: "count", color: "#be123c", size: "medium", target: { mode: "atMost", count: 10, days: 7 } },
-  { slug: "sex", name: "Sex", type: "count", color: "#db2777", size: "medium", target: null },
-  { slug: "impulse-messages", name: "Impulse messages", type: "count", color: "#ea580c", size: "small", target: { mode: "atMost", count: 7, days: 7 } },
-  { slug: "water", name: "Water", type: "count", color: "#0284c7", size: "small", target: { mode: "atLeast", count: 28, days: 7 } },
-  { slug: "cramp", name: "Cramp", type: "event", color: "#9333ea", size: "small", target: null },
-  { slug: "headache", name: "Headache", type: "event", color: "#dc2626", size: "small", target: null },
-  { slug: "argument", name: "Argument", type: "event", color: "#c2410c", size: "small", target: null },
-  { slug: "night-out", name: "Night out", type: "event", color: "#4f46e5", size: "medium", target: null },
-  { slug: "broken-sleep", name: "Broken sleep", type: "event", color: "#64748b", size: "medium", target: null },
-  { slug: "impulse-spending", name: "Impulse spending", type: "event", color: "#d97706", size: "small", target: { mode: "atMost", count: 3, days: 7 } },
-  { slug: "mood", name: "Mood", type: "rating", ratingScale: 10, color: "#7c3aed", size: "large", target: null },
-  { slug: "energy", name: "Energy", type: "rating", ratingScale: 10, color: "#16a34a", size: "medium", target: null },
-  { slug: "sleep-quality", name: "Sleep quality", type: "rating", ratingScale: 5, color: "#2563eb", size: "medium", target: null },
-  { slug: "meal-quality", name: "Meal quality", type: "rating", ratingScale: 5, color: "#ca8a04", size: "small", target: null },
-  { slug: "libido", name: "Libido", type: "rating", ratingScale: 10, color: "#e11d48", size: "medium", target: null },
-  { slug: "mental-clarity", name: "Mental clarity", type: "rating", ratingScale: 100, color: "#0f766e", size: "medium", target: null }
+  { slug: "sigarettes", name: "Sigarettes", type: "count", iconId: "cigarette", themeId: "red", size: "large", target: { mode: "atMost", count: 40, days: 7 } },
+  { slug: "coffee", name: "Coffee", type: "count", iconId: "coffee", themeId: "amber", size: "medium", target: { mode: "atMost", count: 21, days: 7 } },
+  { slug: "drinks", name: "Drinks", type: "count", iconId: "wine", themeId: "rose", size: "medium", target: { mode: "atMost", count: 10, days: 7 } },
+  { slug: "sex", name: "Sex", type: "count", iconId: "heart", themeId: "rose", size: "medium", target: null },
+  { slug: "impulse-messages", name: "Impulse messages", type: "count", iconId: "message-circle", themeId: "amber", size: "small", target: { mode: "atMost", count: 7, days: 7 } },
+  { slug: "water", name: "Water", type: "count", iconId: "glass-water", themeId: "blue", size: "small", target: { mode: "atLeast", count: 28, days: 7 } },
+  { slug: "cramp", name: "Cramp", type: "event", iconId: "zap", themeId: "violet", size: "small", target: null },
+  { slug: "headache", name: "Headache", type: "event", iconId: "brain", themeId: "red", size: "small", target: null },
+  { slug: "argument", name: "Argument", type: "event", iconId: "message-circle", themeId: "amber", size: "small", target: null },
+  { slug: "night-out", name: "Night out", type: "event", iconId: "moon-star", themeId: "violet", size: "medium", target: null },
+  { slug: "broken-sleep", name: "Broken sleep", type: "event", iconId: "bed", themeId: "slate", size: "medium", target: null },
+  { slug: "impulse-spending", name: "Impulse spending", type: "event", iconId: "shopping-bag", themeId: "amber", size: "small", target: { mode: "atMost", count: 3, days: 7 } },
+  { slug: "mood", name: "Mood", type: "rating", ratingScale: 10, iconId: "smile", themeId: "violet", size: "large", target: null },
+  { slug: "energy", name: "Energy", type: "rating", ratingScale: 10, iconId: "battery", themeId: "emerald", size: "medium", target: null },
+  { slug: "sleep-quality", name: "Sleep quality", type: "rating", ratingScale: 5, iconId: "moon", themeId: "blue", size: "medium", target: null },
+  { slug: "meal-quality", name: "Meal quality", type: "rating", ratingScale: 5, iconId: "utensils", themeId: "amber", size: "small", target: null },
+  { slug: "libido", name: "Libido", type: "rating", ratingScale: 10, iconId: "heart", themeId: "rose", size: "medium", target: null },
+  { slug: "mental-clarity", name: "Mental clarity", type: "rating", ratingScale: 100, iconId: "brain-circuit", themeId: "teal", size: "medium", target: null }
 ];
 const CHARTS_BY_TYPE = {
   count: ["rolling-frequency", "timeline", "hour-of-day", "gap", "overlay", "days-with-without"],
@@ -40,6 +40,66 @@ const CHART_LABELS = {
   "days-with-without": "Days with vs without",
   "before-event": "24h before event"
 };
+const THEMES = {
+  amber: "#b45309",
+  blue: "#0284c7",
+  rose: "#be123c",
+  violet: "#7c3aed",
+  emerald: "#16a34a",
+  slate: "#64748b",
+  teal: "#0f766e",
+  red: "#7f1d1d"
+};
+const ICON_CATEGORIES = [
+  { name: "Body", icons: ["smile", "frown", "battery", "heart", "brain", "brain-circuit", "moon", "bed", "pill", "zap"] },
+  { name: "Food & Drink", icons: ["coffee", "glass-water", "wine", "beer", "utensils", "apple"] },
+  { name: "Activity", icons: ["footprints", "dumbbell", "book", "briefcase", "bike", "music"] },
+  { name: "Social", icons: ["users", "phone", "handshake", "message-circle"] },
+  { name: "Lifestyle", icons: ["cigarette", "shopping-bag", "plane", "car", "home", "camera"] },
+  { name: "Maintenance", icons: ["flower", "broom", "shirt", "wrench", "calendar", "timer"] }
+];
+const ICON_PATHS = {
+  smile: `<circle cx="12" cy="12" r="9"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><path d="M9 9h.01M15 9h.01"></path>`,
+  frown: `<circle cx="12" cy="12" r="9"></circle><path d="M8 16s1.5-2 4-2 4 2 4 2"></path><path d="M9 9h.01M15 9h.01"></path>`,
+  battery: `<rect x="3" y="7" width="16" height="10" rx="2"></rect><path d="M21 11v2M7 11h6"></path>`,
+  heart: `<path d="M20.8 5.6c-1.7-2-4.7-2.1-6.5-.2L12 7.7 9.7 5.4C7.9 3.5 4.9 3.6 3.2 5.6c-1.6 1.9-1.5 4.8.3 6.6L12 20l8.5-7.8c1.8-1.8 1.9-4.7.3-6.6Z"></path>`,
+  brain: `<path d="M9 4a3 3 0 0 0-3 3v1a3 3 0 0 0 0 6v1a3 3 0 0 0 5 2.2V4.8A3 3 0 0 0 9 4Z"></path><path d="M15 4a3 3 0 0 1 3 3v1a3 3 0 0 1 0 6v1a3 3 0 0 1-5 2.2V4.8A3 3 0 0 1 15 4Z"></path>`,
+  "brain-circuit": `<path d="M9 4a3 3 0 0 0-3 3v1a3 3 0 0 0 0 6v1a3 3 0 0 0 5 2.2V4.8A3 3 0 0 0 9 4Z"></path><path d="M15 4a3 3 0 0 1 3 3v1a3 3 0 0 1 0 6v1a3 3 0 0 1-5 2.2V4.8A3 3 0 0 1 15 4Z"></path><path d="M12 8h3M15 8v3M12 14h-2M10 14v2"></path>`,
+  moon: `<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5Z"></path>`,
+  "moon-star": `<path d="M18 15.5A8 8 0 0 1 8.5 5a7 7 0 1 0 9.5 10.5Z"></path><path d="m18 3 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z"></path>`,
+  bed: `<path d="M3 6v12M21 10v8M3 14h18M7 10h4a2 2 0 0 1 2 2v2H5v-2a2 2 0 0 1 2-2Z"></path>`,
+  pill: `<path d="m10 21 10-10a5 5 0 0 0-7-7L3 14a5 5 0 0 0 7 7Z"></path><path d="m8 9 7 7"></path>`,
+  zap: `<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"></path>`,
+  coffee: `<path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z"></path><path d="M17 9h1a3 3 0 0 1 0 6h-1M6 2v2M10 2v2M14 2v2"></path>`,
+  "glass-water": `<path d="M5 3h14l-2 18H7L5 3Z"></path><path d="M6 9h12"></path>`,
+  wine: `<path d="M7 3h10v5a5 5 0 0 1-10 0V3Z"></path><path d="M12 13v8M9 21h6"></path>`,
+  beer: `<path d="M5 8h10v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8Z"></path><path d="M15 10h2a3 3 0 0 1 0 6h-2M7 5h6"></path>`,
+  utensils: `<path d="M4 3v8M7 3v8M5.5 11v10M14 3v18M20 3c-3 2-3 6 0 8v10"></path>`,
+  apple: `<path d="M12 7c2-2 6-1 7 2 1.5 5-2 11-7 11S3.5 14 5 9c1-3 5-4 7-2Z"></path><path d="M12 7c0-2 1-4 3-4"></path>`,
+  footprints: `<path d="M6 3c2 0 3 2 3 4s-1 4-3 4-3-2-3-4 1-4 3-4ZM16 13c2 0 3 2 3 4s-1 4-3 4-3-2-3-4 1-4 3-4Z"></path>`,
+  dumbbell: `<path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"></path>`,
+  book: `<path d="M4 5a3 3 0 0 1 3-3h13v17H7a3 3 0 0 0-3 3V5Z"></path><path d="M4 19a3 3 0 0 1 3-3h13"></path>`,
+  briefcase: `<path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"></path><rect x="3" y="6" width="18" height="14" rx="2"></rect><path d="M3 12h18"></path>`,
+  bike: `<circle cx="6" cy="17" r="3"></circle><circle cx="18" cy="17" r="3"></circle><path d="M8 17h4l3-7h-4l-3 7ZM12 17l-2-5"></path>`,
+  music: `<path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle>`,
+  users: `<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.8M16 3.3a4 4 0 0 1 0 7.4"></path>`,
+  phone: `<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19 19 0 0 1-8.3-3 18.6 18.6 0 0 1-5.7-5.7 19 19 0 0 1-3-8.3A2 2 0 0 1 4.7 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.7.6 2.5a2 2 0 0 1-.5 2.1L8.5 9.6a16 16 0 0 0 5.9 5.9l1.3-1.3a2 2 0 0 1 2.1-.5c.8.3 1.6.5 2.5.6A2 2 0 0 1 22 16.9Z"></path>`,
+  handshake: `<path d="m11 17 2 2a3 3 0 0 0 4 0l4-4-7-7-3 3"></path><path d="m3 12 5-5 4 4-5 5"></path>`,
+  "message-circle": `<path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.1-5.4A8.5 8.5 0 1 1 21 11.5Z"></path>`,
+  cigarette: `<path d="M3 15h12v4H3zM18 15h3v4h-3zM16 8c2-2 2-4 0-6M20 10c2-2 2-4 0-6"></path>`,
+  "shopping-bag": `<path d="M6 8h12l1 13H5L6 8Z"></path><path d="M9 8a3 3 0 0 1 6 0"></path>`,
+  plane: `<path d="M2 16 22 4l-7 16-4-7-9 3Z"></path>`,
+  car: `<path d="M5 17h14M6 17v3M18 17v3M4 13l2-6h12l2 6"></path><circle cx="7" cy="13" r="1"></circle><circle cx="17" cy="13" r="1"></circle>`,
+  home: `<path d="m3 11 9-8 9 8"></path><path d="M5 10v11h14V10"></path>`,
+  camera: `<path d="M4 7h4l2-3h4l2 3h4v13H4V7Z"></path><circle cx="12" cy="13" r="4"></circle>`,
+  flower: `<path d="M12 13c3-4 8-2 7 2-1 4-6 3-7-2Zm0 0c-3-4-8-2-7 2 1 4 6 3 7-2Zm0 0c-4-3-2-8 2-7 4 1 3 6-2 7Zm0 0c4-3 2-8-2-7-4 1-3 6 2 7Z"></path><path d="M12 13v8"></path>`,
+  broom: `<path d="m15 4 5 5M14 5l-9 9 5 5 9-9"></path><path d="M4 15l5 5M7 12l5 5"></path>`,
+  shirt: `<path d="M8 4 4 6l2 5 2-1v10h8V10l2 1 2-5-4-2a4 4 0 0 1-8 0Z"></path>`,
+  wrench: `<path d="M14.7 6.3a4 4 0 0 0-5 5L3 18l3 3 6.7-6.7a4 4 0 0 0 5-5l-3 3-3-3 3-3Z"></path>`,
+  calendar: `<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 11h18"></path>`,
+  timer: `<circle cx="12" cy="13" r="8"></circle><path d="M12 13V8M9 2h6"></path>`
+};
+const ALL_ICON_IDS = ICON_CATEGORIES.flatMap((category) => category.icons);
 
 let db;
 let state = {
@@ -53,6 +113,7 @@ let state = {
     range: 30,
     chart: ""
   },
+  selectedIconId: "smile",
   ratingButton: null,
   lastCreatedLog: null,
   toastTimer: null
@@ -88,7 +149,9 @@ const els = {
   buttonDialogTitle: document.querySelector("#buttonDialogTitle"),
   buttonId: document.querySelector("#buttonId"),
   buttonName: document.querySelector("#buttonName"),
-  buttonColor: document.querySelector("#buttonColor"),
+  iconSearch: document.querySelector("#iconSearch"),
+  iconChoices: document.querySelector("#iconChoices"),
+  buttonTheme: document.querySelector("#buttonTheme"),
   ratingScaleWrap: document.querySelector("#ratingScaleWrap"),
   ratingScale: document.querySelector("#ratingScale"),
   targetMode: document.querySelector("#targetMode"),
@@ -189,6 +252,12 @@ function bindEvents() {
     button.addEventListener("click", () => els.ratingDialog.close());
   });
   els.buttonForm.addEventListener("submit", saveButton);
+  els.buttonName.addEventListener("input", () => {
+    if (els.buttonId.value) return;
+    selectIcon(suggestIconId(els.buttonName.value));
+    els.buttonTheme.value = suggestThemeId(els.buttonName.value);
+  });
+  els.iconSearch.addEventListener("input", () => renderIconChoices(els.iconSearch.value));
   els.buttonForm.elements.type.forEach((radio) => {
     radio.addEventListener("change", updateRatingVisibility);
   });
@@ -249,18 +318,20 @@ function renderHome() {
   const activeButtons = state.buttons.filter((button) => !button.archived);
   els.marbleBoard.innerHTML = "";
   els.emptyHome.hidden = activeButtons.length > 0;
-  activeButtons.forEach((button, index) => {
+  activeButtons.forEach((rawButton, index) => {
+    const button = withVisualDefaults(rawButton);
     const summary = getButtonSummary(button);
     const target = getTargetState(button);
     const marble = document.createElement("button");
     marble.type = "button";
     marble.className = `marble ${button.size || "medium"} ${target.className}`;
-    marble.style.setProperty("--marble-color", button.color || "#3b82f6");
+    marble.style.setProperty("--marble-color", themeColor(button.themeId, button.color));
     marble.style.setProperty("--drift-y", `${seededRange(button.id, -8, 10)}px`);
     marble.style.setProperty("--drift-r", `${seededRange(button.name + index, -4, 4)}deg`);
     marble.ariaLabel = `${button.name}, ${summary.accessible}`;
     marble.innerHTML = `
       <span class="marble-content">
+        <span class="marble-icon" aria-hidden="true">${iconSvg(button.iconId)}</span>
         <span class="marble-name">${escapeHtml(button.name)}</span>
         <span class="marble-value">${escapeHtml(summary.value)}</span>
         <span class="marble-target">${escapeHtml(target.label)}</span>
@@ -349,12 +420,12 @@ function renderHistory() {
   els.historyList.innerHTML = "";
   els.emptyHistory.hidden = logs.length > 0;
   logs.forEach((log) => {
-    const button = state.buttons.find((item) => item.id === log.buttonId);
+    const button = withVisualDefaults(state.buttons.find((item) => item.id === log.buttonId) || { name: "Bottone archiviato", type: log.type });
     const item = document.createElement("li");
     item.className = "history-item";
     item.innerHTML = `
       <div>
-        <strong>${escapeHtml(button?.name || "Bottone archiviato")}</strong>
+        <strong class="history-title"><span class="inline-icon">${iconSvg(button.iconId)}</span>${escapeHtml(button.name)}</strong>
         <span>${escapeHtml(log.type)}${log.value ? ` · ${escapeHtml(String(log.value))}` : ""}</span>
       </div>
       <time datetime="${escapeHtml(log.timestamp)}">${escapeHtml(formatDateTime(log.timestamp))}</time>
@@ -398,17 +469,49 @@ function renderDiscovery() {
 }
 
 function renderDiscoveryChart() {
-  const primary = state.buttons.find((button) => button.id === state.discovery.buttonId);
-  const compare = state.buttons.find((button) => button.id === state.discovery.compareId);
+  const primaryRaw = state.buttons.find((button) => button.id === state.discovery.buttonId);
+  const compareRaw = state.buttons.find((button) => button.id === state.discovery.compareId);
+  const primary = primaryRaw ? withVisualDefaults(primaryRaw) : null;
+  const compare = compareRaw ? withVisualDefaults(compareRaw) : null;
   if (!primary) return;
   const range = state.discovery.range;
   const chart = state.discovery.chart;
   els.chartKicker.textContent = primary.type;
-  els.chartTitle.textContent = `${CHART_LABELS[chart] || "Statistics"} · ${primary.name}`;
+  els.chartTitle.innerHTML = `<span class="inline-icon">${iconSvg(primary.iconId)}</span>${escapeHtml(CHART_LABELS[chart] || "Statistics")} · ${escapeHtml(primary.name)}`;
   els.chartNote.hidden = chart !== "overlay" && chart !== "days-with-without" && chart !== "before-event";
   const result = drawChart(chart, primary, compare, range);
   els.chartCanvas.innerHTML = result.svg;
   els.insightList.innerHTML = result.insights.map((item) => `<p>${escapeHtml(item)}</p>`).join("");
+}
+
+function renderIconChoices(query = "") {
+  const normalized = query.trim().toLowerCase();
+  const matches = ICON_CATEGORIES.map((category) => {
+    const icons = category.icons.filter((iconId) => {
+      return !normalized || iconId.includes(normalized) || iconLabel(iconId).toLowerCase().includes(normalized) || category.name.toLowerCase().includes(normalized);
+    });
+    return { ...category, icons };
+  }).filter((category) => category.icons.length);
+  els.iconChoices.innerHTML = matches.map((category) => `
+    <div class="icon-category">
+      <p>${escapeHtml(category.name)}</p>
+      <div>
+        ${category.icons.map((iconId) => `
+          <button class="icon-choice ${iconId === state.selectedIconId ? "selected" : ""}" type="button" data-icon-id="${escapeHtml(iconId)}" aria-label="${escapeHtml(iconLabel(iconId))}">
+            ${iconSvg(iconId)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `).join("");
+  els.iconChoices.querySelectorAll("[data-icon-id]").forEach((button) => {
+    button.addEventListener("click", () => selectIcon(button.dataset.iconId));
+  });
+}
+
+function selectIcon(iconId, rerender = true) {
+  state.selectedIconId = ICON_PATHS[iconId] ? iconId : "smile";
+  if (rerender) renderIconChoices(els.iconSearch.value);
 }
 
 function renderBackupStats() {
@@ -448,9 +551,13 @@ function openButtonDialog(button = null) {
   els.archiveButton.hidden = !button;
   els.resetButtonLogs.hidden = !button;
   els.duplicateButton.hidden = !button;
+  const visualButton = button ? withVisualDefaults(button) : { iconId: suggestIconId(""), themeId: "blue" };
+  state.selectedIconId = visualButton.iconId;
+  els.iconSearch.value = "";
+  els.buttonTheme.value = visualButton.themeId;
+  renderIconChoices("");
   if (button) {
     els.buttonName.value = button.name;
-    els.buttonColor.value = button.color || "#3b82f6";
     setRadio("type", button.type);
     setRadio("size", button.size || "medium");
     els.ratingScale.value = String(button.ratingScale || 5);
@@ -475,7 +582,9 @@ async function saveButton(event) {
     name: els.buttonName.value.trim(),
     type,
     ratingScale: type === "rating" ? Number(els.ratingScale.value) : undefined,
-    color: els.buttonColor.value,
+    iconId: state.selectedIconId || suggestIconId(els.buttonName.value),
+    themeId: els.buttonTheme.value || "blue",
+    color: themeColor(els.buttonTheme.value),
     icon: existing?.icon || "",
     size: getRadio("size"),
     target: targetMode ? {
@@ -641,7 +750,9 @@ async function seedDemoData() {
       name: button.name,
       type: button.type,
       ratingScale: button.ratingScale,
-      color: button.color,
+      iconId: button.iconId,
+      themeId: button.themeId,
+      color: themeColor(button.themeId),
       icon: "",
       size: button.size,
       target: button.target,
@@ -767,12 +878,16 @@ function demoButtonId(slug) {
 
 function sanitizeButton(button) {
   const now = new Date().toISOString();
+  const iconId = ICON_PATHS[button.iconId] ? button.iconId : suggestIconId(button.name || "");
+  const themeId = THEMES[button.themeId] ? button.themeId : suggestThemeId(button.name || "", button.color);
   return {
     id: String(button.id),
     name: String(button.name || "Senza nome").slice(0, 28),
     type: ["count", "event", "rating"].includes(button.type) ? button.type : "count",
     ratingScale: [5, 10, 100].includes(Number(button.ratingScale)) ? Number(button.ratingScale) : undefined,
-    color: /^#[0-9a-f]{6}$/i.test(button.color) ? button.color : "#3b82f6",
+    iconId,
+    themeId,
+    color: themeColor(themeId, button.color),
     icon: String(button.icon || ""),
     size: ["small", "medium", "large"].includes(button.size) ? button.size : "medium",
     target: sanitizeTarget(button.target),
@@ -804,6 +919,71 @@ function sanitizeTarget(target) {
     count: Math.max(1, Number(target.count) || 1),
     days: Math.max(1, Number(target.days) || 7)
   };
+}
+
+function withVisualDefaults(button) {
+  const iconId = ICON_PATHS[button.iconId] ? button.iconId : suggestIconId(button.name || button.type || "");
+  const themeId = THEMES[button.themeId] ? button.themeId : suggestThemeId(button.name || "", button.color);
+  return {
+    ...button,
+    iconId,
+    themeId,
+    color: themeColor(themeId, button.color)
+  };
+}
+
+function themeColor(themeId, fallback = "#3b82f6") {
+  return THEMES[themeId] || fallback || "#3b82f6";
+}
+
+function iconLabel(iconId) {
+  return iconId.split("-").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ");
+}
+
+function iconSvg(iconId, className = "") {
+  const path = ICON_PATHS[iconId] || ICON_PATHS.smile;
+  return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+}
+
+function suggestIconId(name) {
+  const text = String(name).toLowerCase();
+  const pairs = [
+    [["coffee", "caffe", "caffè"], "coffee"],
+    [["sleep quality", "broken sleep", "sleep", "sonno"], "moon"],
+    [["bed"], "bed"],
+    [["mood", "happy", "smile", "umore"], "smile"],
+    [["energy", "energia"], "battery"],
+    [["water", "acqua"], "glass-water"],
+    [["sex", "libido", "desire"], "heart"],
+    [["headache", "mal di testa", "brain"], "brain"],
+    [["mental", "clarity", "lucid"], "brain-circuit"],
+    [["argument", "litigio", "message", "impulse message"], "message-circle"],
+    [["drink", "wine", "alcol"], "wine"],
+    [["beer"], "beer"],
+    [["cigarette", "sigarette", "smoke"], "cigarette"],
+    [["spending", "shopping", "spesa"], "shopping-bag"],
+    [["meal", "food", "pasto"], "utensils"],
+    [["cramp"], "zap"],
+    [["night out"], "moon-star"],
+    [["phone", "call"], "phone"],
+    [["work"], "briefcase"],
+    [["bike"], "bike"],
+    [["music"], "music"]
+  ];
+  return pairs.find(([keywords]) => keywords.some((keyword) => text.includes(keyword)))?.[1] || "smile";
+}
+
+function suggestThemeId(name, color) {
+  const text = String(name).toLowerCase();
+  if (text.includes("coffee") || text.includes("spending") || text.includes("meal")) return "amber";
+  if (text.includes("water") || text.includes("sleep")) return "blue";
+  if (text.includes("mood") || text.includes("night") || text.includes("cramp")) return "violet";
+  if (text.includes("sex") || text.includes("libido") || text.includes("drink")) return "rose";
+  if (text.includes("energy")) return "emerald";
+  if (text.includes("mental")) return "teal";
+  if (text.includes("headache") || text.includes("cigarette")) return "red";
+  const found = Object.entries(THEMES).find(([, value]) => value.toLowerCase() === String(color).toLowerCase());
+  return found?.[0] || "blue";
 }
 
 function getChartOptions(button) {
@@ -988,8 +1168,8 @@ function drawOverlay(primary, logs, compare, compareLogs, range) {
   const primaryMarks = pointMarkers(primaryPoints, primary.name, "primary");
   const compareMarks = pointMarkers(comparePoints, compare.name, "compare");
   const legend = chartLegend([
-    { label: primary.name, className: "legend-primary" },
-    { label: compare.name, className: "legend-compare" }
+    { label: primary.name, iconId: primary.iconId, className: "legend-primary" },
+    { label: compare.name, iconId: compare.iconId, className: "legend-compare" }
   ]);
   return {
     svg: chartSvg(`${axes({
@@ -1136,7 +1316,7 @@ function chartLegend(items) {
   return `<g class="chart-legend">${items.map((item, index) => {
     const x = 70;
     const y = 44 + index * 20;
-    return `<g><line x1="${x}" x2="${x + 28}" y1="${y}" y2="${y}" class="${item.className}"></line><text x="${x + 36}" y="${y + 4}">${escapeHtml(item.label)}</text></g>`;
+    return `<g><line x1="${x}" x2="${x + 22}" y1="${y}" y2="${y}" class="${item.className}"></line><g transform="translate(${x + 30} ${y - 8}) scale(.7)">${iconSvg(item.iconId)}</g><text x="${x + 50}" y="${y + 4}">${escapeHtml(item.label)}</text></g>`;
   }).join("")}</g>`;
 }
 

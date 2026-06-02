@@ -178,6 +178,12 @@
         </label>
 
         <fieldset>
+          <legend>Icona</legend>
+          <input id="iconSearch" type="search" placeholder="Cerca icona">
+          <div id="iconChoices" class="icon-choice-grid" aria-label="Scegli icona"></div>
+        </fieldset>
+
+        <fieldset>
           <legend>Tipo</legend>
           <div class="segmented">
             <label><input type="radio" name="type" value="count" checked> Count</label>
@@ -205,8 +211,17 @@
         </fieldset>
 
         <label>
-          Colore
-          <input id="buttonColor" type="color" value="#3b82f6">
+          Tema
+          <select id="buttonTheme">
+            <option value="amber">Amber</option>
+            <option value="blue">Blue</option>
+            <option value="rose">Rose</option>
+            <option value="violet">Violet</option>
+            <option value="emerald">Emerald</option>
+            <option value="slate">Slate</option>
+            <option value="teal">Teal</option>
+            <option value="red">Red</option>
+          </select>
         </label>
 
         <fieldset>
