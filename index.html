@@ -15,6 +15,10 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+    <div id="dailySplash" class="daily-splash" aria-hidden="true" hidden>
+      <img src="icons/icon.svg" alt="">
+      <p>IDIA</p>
+    </div>
     <div class="app-shell">
       <header class="topbar">
         <div>
@@ -28,13 +32,11 @@
 
       <main>
         <section class="view active" id="homeView" aria-labelledby="homeTab">
-          <div class="glass">
-            <div class="glass-rim" aria-hidden="true"></div>
+          <div class="marble-stage">
             <div id="marbleBoard" class="marble-board" aria-live="polite"></div>
-            <div class="glass-base" aria-hidden="true"></div>
           </div>
           <div id="emptyHome" class="empty-state" hidden>
-            <h2>Il bicchiere è vuoto</h2>
+            <h2>Nessuna biglia</h2>
             <p>Crea una biglia per registrare qualcosa che accade, senza streak e senza giudizi.</p>
             <button class="primary-action" type="button" data-action="new-button">Crea la prima biglia</button>
           </div>

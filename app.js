@@ -59,6 +59,7 @@ let state = {
 };
 
 const els = {
+  dailySplash: document.querySelector("#dailySplash"),
   addButton: document.querySelector("#addButton"),
   marbleBoard: document.querySelector("#marbleBoard"),
   emptyHome: document.querySelector("#emptyHome"),
@@ -105,10 +106,12 @@ const els = {
 init();
 
 async function init() {
+  const splashDone = startDailySplashIfNeeded();
   db = await openDatabase();
   await seedIfEmpty();
   bindEvents();
   await refresh();
+  await splashDone;
   registerServiceWorker();
 }
 
@@ -417,6 +420,25 @@ function setView(viewId) {
   state.activeView = viewId;
   render();
   window.scrollTo({ top: 0, behavior: "auto" });
+}
+
+async function startDailySplashIfNeeded() {
+  const key = "idia-last-splash-date";
+  const today = localDateKey(new Date());
+  if (!els.dailySplash) return;
+  try {
+    if (localStorage.getItem(key) === today) return;
+    localStorage.setItem(key, today);
+  } catch (error) {
+    return;
+  }
+  state.activeView = "homeView";
+  els.dailySplash.hidden = false;
+  await wait(1000);
+  els.dailySplash.classList.add("fade-out");
+  await wait(200);
+  els.dailySplash.hidden = true;
+  els.dailySplash.classList.remove("fade-out");
 }
 
 function openButtonDialog(button = null) {
@@ -1299,6 +1321,13 @@ function dateKey(value) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
+function localDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function shortRelative(timestamp) {
   const diffDays = Math.floor((Date.now() - new Date(timestamp).getTime()) / 86400000);
   if (diffDays <= 0) return "oggi";
@@ -1323,6 +1352,10 @@ function formatDateTime(timestamp) {
 function round(value, decimals) {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function escapeHtml(value) {

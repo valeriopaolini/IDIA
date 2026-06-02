@@ -50,6 +50,40 @@ body {
   letter-spacing: 0;
 }
 
+.daily-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--accent), transparent 82%), transparent 20rem),
+    var(--bg);
+}
+
+.daily-splash img {
+  width: 132px;
+  height: 132px;
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+}
+
+.daily-splash p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 950;
+  letter-spacing: 0.18em;
+}
+
+.daily-splash.fade-out {
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
 button,
 input,
 select {
@@ -171,58 +205,23 @@ h3 {
   display: block;
 }
 
-.glass {
+.marble-stage {
   position: relative;
-  min-height: min(66vh, 590px);
-  padding: 38px 16px 30px;
-  overflow: hidden;
-}
-
-.glass::before {
-  content: "";
-  position: absolute;
-  inset: 28px 4px 8px;
-  border: 2px solid rgba(120, 120, 120, 0.28);
-  border-top: 0;
-  border-radius: 0 0 32px 32px / 0 0 26px 26px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), transparent 28%, rgba(255, 255, 255, 0.12));
-  pointer-events: none;
-}
-
-.glass-rim,
-.glass-base {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 34px;
-  border: 2px solid rgba(120, 120, 120, 0.28);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.glass-rim {
-  top: 10px;
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.glass-base {
-  bottom: 0;
-  width: 72%;
-  margin: 0 auto;
-  opacity: 0.6;
+  min-height: min(68vh, 620px);
+  padding: 12px 0 20px;
 }
 
 .marble-board {
   position: relative;
   z-index: 1;
   display: flex;
-  min-height: calc(min(66vh, 590px) - 78px);
+  min-height: calc(min(68vh, 620px) - 32px);
   align-content: flex-end;
   align-items: flex-end;
   justify-content: center;
   flex-wrap: wrap-reverse;
-  gap: 8px;
-  padding: 18px 4px 6px;
+  gap: 10px;
+  padding: 12px 0 6px;
 }
 
 .marble {
