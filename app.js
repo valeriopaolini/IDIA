@@ -477,7 +477,7 @@ function renderDiscoveryChart() {
   const range = state.discovery.range;
   const chart = state.discovery.chart;
   els.chartKicker.textContent = primary.type;
-  els.chartTitle.innerHTML = `<span class="inline-icon">${iconSvg(primary.iconId)}</span>${escapeHtml(CHART_LABELS[chart] || "Statistics")} · ${escapeHtml(primary.name)}`;
+  els.chartTitle.textContent = `${CHART_LABELS[chart] || "Statistics"} · ${primary.name}`;
   els.chartNote.hidden = chart !== "overlay" && chart !== "days-with-without" && chart !== "before-event";
   const result = drawChart(chart, primary, compare, range);
   els.chartCanvas.innerHTML = result.svg;
@@ -1168,8 +1168,8 @@ function drawOverlay(primary, logs, compare, compareLogs, range) {
   const primaryMarks = pointMarkers(primaryPoints, primary.name, "primary");
   const compareMarks = pointMarkers(comparePoints, compare.name, "compare");
   const legend = chartLegend([
-    { label: primary.name, iconId: primary.iconId, className: "legend-primary" },
-    { label: compare.name, iconId: compare.iconId, className: "legend-compare" }
+    { label: primary.name, className: "legend-primary" },
+    { label: compare.name, className: "legend-compare" }
   ]);
   return {
     svg: chartSvg(`${axes({
@@ -1316,7 +1316,7 @@ function chartLegend(items) {
   return `<g class="chart-legend">${items.map((item, index) => {
     const x = 70;
     const y = 44 + index * 20;
-    return `<g><line x1="${x}" x2="${x + 22}" y1="${y}" y2="${y}" class="${item.className}"></line><g transform="translate(${x + 30} ${y - 8}) scale(.7)">${iconSvg(item.iconId)}</g><text x="${x + 50}" y="${y + 4}">${escapeHtml(item.label)}</text></g>`;
+    return `<g><line x1="${x}" x2="${x + 28}" y1="${y}" y2="${y}" class="${item.className}"></line><text x="${x + 38}" y="${y + 4}">${escapeHtml(item.label)}</text></g>`;
   }).join("")}</g>`;
 }
 

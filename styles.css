@@ -524,12 +524,6 @@ h3 {
   font-weight: 900;
 }
 
-.chart-legend svg {
-  color: var(--muted);
-  width: 24px;
-  height: 24px;
-}
-
 .raster-primary text {
   fill: var(--text);
   font-weight: 950;
