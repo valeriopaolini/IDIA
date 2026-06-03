@@ -1,11 +1,15 @@
-const CACHE_NAME = "idia-shell-v8";
+const CACHE_NAME = "idia-shell-v9";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./manifest.webmanifest",
-  "./icons/icon.svg"
+  "./icons/icon.svg",
+  "./vendor/react.production.min.js",
+  "./vendor/react-dom.production.min.js",
+  "./vendor/prop-types.min.js",
+  "./vendor/Recharts.min.js"
 ];
 
 self.addEventListener("install", (event) => {

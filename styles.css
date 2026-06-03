@@ -460,12 +460,26 @@ h3 {
   -webkit-overflow-scrolling: touch;
 }
 
-.chart-tooltip {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 3;
-  max-width: 170px;
+.recharts-frame {
+  min-width: 760px;
+  padding: 12px 8px 0;
+}
+
+.recharts-frame text {
+  fill: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.recharts-legend-item-text {
+  color: var(--muted) !important;
+  font-weight: 900;
+}
+
+.chart-tooltip-box {
+  display: grid;
+  gap: 4px;
+  max-width: 190px;
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -475,105 +489,14 @@ h3 {
   font-size: 0.78rem;
   font-weight: 850;
   line-height: 1.25;
-  pointer-events: none;
 }
 
-.chart-svg {
-  display: block;
-  width: max(100%, 760px);
-  min-height: 320px;
+.chart-tooltip-box strong {
+  color: var(--text);
 }
 
-.chart-axis line {
-  stroke: color-mix(in srgb, var(--text), transparent 72%);
-  stroke-width: 1;
-}
-
-.chart-axis .grid-line {
-  stroke: color-mix(in srgb, var(--text), transparent 90%);
-}
-
-.chart-axis text,
-.axis-title {
-  fill: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.axis-label-bg {
-  fill: color-mix(in srgb, var(--surface-strong), transparent 8%);
-}
-
-.axis-title {
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.chart-line {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.chart-points circle {
-  fill: var(--accent);
-  stroke: var(--surface-strong);
-  stroke-width: 1.5;
-}
-
-.chart-bars rect,
-.raster rect {
-  fill: var(--accent);
-}
-
-.chart-labels text,
-.raster text,
-.chart-title-small {
-  fill: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.overlay-marker {
-  stroke: var(--danger);
-  stroke-width: 2;
-  opacity: 0.42;
-}
-
-.overlay-primary-line,
-.legend-primary {
-  stroke: var(--accent);
-}
-
-.overlay-compare-line,
-.legend-compare {
-  stroke: var(--danger);
-}
-
-.overlay-compare-line {
-  stroke-width: 2.5;
-}
-
-.overlay-compare-point {
-  fill: var(--danger) !important;
-}
-
-.chart-legend line {
-  stroke-width: 4;
-  stroke-linecap: round;
-}
-
-.chart-legend text {
-  fill: var(--muted);
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.raster-primary text {
-  fill: var(--text);
-  font-weight: 950;
+.chart-tooltip-box span {
+  color: var(--muted);
 }
 
 .before-card {
@@ -1033,7 +956,7 @@ h3 {
     min-height: 250px;
   }
 
-  .chart-svg {
-    min-height: 250px;
+  .recharts-frame {
+    height: 250px !important;
   }
 }

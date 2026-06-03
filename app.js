@@ -148,7 +148,6 @@ const els = {
   chartTitle: document.querySelector("#chartTitle"),
   chartNote: document.querySelector("#chartNote"),
   chartCanvas: document.querySelector("#chartCanvas"),
-  chartTooltip: document.querySelector("#chartTooltip"),
   insightList: document.querySelector("#insightList"),
   buttonDialog: document.querySelector("#buttonDialog"),
   buttonForm: document.querySelector("#buttonForm"),
@@ -173,6 +172,29 @@ const els = {
   reorderList: document.querySelector("#reorderList"),
   toast: document.querySelector("#toast")
 };
+
+const ChartRenderer = (() => {
+  let root = null;
+
+  function render(config, container) {
+    clear();
+    container.innerHTML = "";
+    if (!window.React || !window.ReactDOM || !window.Recharts) {
+      container.innerHTML = `<div class="empty-state compact"><h2>Charts unavailable</h2><p>Recharts did not load. Check the network connection and reload.</p></div>`;
+      return;
+    }
+    root = window.ReactDOM.createRoot(container);
+    root.render(window.React.createElement(ChartView, { config }));
+  }
+
+  function clear() {
+    if (!root) return;
+    root.unmount();
+    root = null;
+  }
+
+  return { render, clear };
+})();
 
 init();
 
@@ -300,12 +322,6 @@ function bindEvents() {
     state.discovery.chart = els.chartSelect.value;
     renderDiscoveryChart();
   });
-  els.chartCanvas.addEventListener("pointerover", handleChartPointer);
-  els.chartCanvas.addEventListener("pointermove", handleChartPointer);
-  els.chartCanvas.addEventListener("pointerout", (event) => {
-    if (!event.relatedTarget || !els.chartCanvas.contains(event.relatedTarget)) hideChartTooltip();
-  });
-  els.chartCanvas.addEventListener("click", handleChartPointer);
   els.exportData.addEventListener("click", exportData);
   els.importData.addEventListener("change", importData);
   els.resetDemoData.addEventListener("click", resetDemoData);
@@ -499,7 +515,7 @@ function renderDiscovery() {
     els.primaryButtonSelect.innerHTML = "";
     els.compareButtonSelect.innerHTML = "";
     els.chartSelect.innerHTML = "";
-    els.chartCanvas.innerHTML = `<div class="empty-state compact"><h2>No data</h2><p>Create or seed buttons to explore patterns.</p></div>`;
+    ChartRenderer.render(emptyChart("No data", "Create or seed buttons to explore patterns."), els.chartCanvas);
     els.insightList.innerHTML = "";
     return;
   }
@@ -539,33 +555,8 @@ function renderDiscoveryChart() {
   els.chartTitle.textContent = `${CHART_LABELS[chart] || "Statistics"} · ${primary.name}`;
   els.chartNote.hidden = chart !== "overlay" && chart !== "days-with-without" && chart !== "before-event";
   const result = drawChart(chart, primary, compare, range);
-  els.chartCanvas.innerHTML = result.svg;
-  hideChartTooltip();
+  ChartRenderer.render(result.config, els.chartCanvas);
   els.insightList.innerHTML = result.insights.map((item) => `<p>${escapeHtml(item)}</p>`).join("");
-}
-
-function handleChartPointer(event) {
-  const target = event.target.closest("[data-tip]");
-  if (!target || !els.chartCanvas.contains(target)) {
-    if (event.type === "click") hideChartTooltip();
-    return;
-  }
-  showChartTooltip(target.dataset.tip, event);
-}
-
-function showChartTooltip(text, event) {
-  if (!els.chartTooltip || !text) return;
-  const wrap = els.chartCanvas.getBoundingClientRect();
-  const x = event.clientX - wrap.left + els.chartCanvas.scrollLeft + els.chartCanvas.offsetLeft;
-  const y = event.clientY - wrap.top + els.chartCanvas.scrollTop + els.chartCanvas.offsetTop;
-  els.chartTooltip.textContent = text;
-  els.chartTooltip.hidden = false;
-  els.chartTooltip.style.transform = `translate(${Math.min(x + 12, els.chartCanvas.offsetLeft + wrap.width - 180)}px, ${Math.max(y - 42, els.chartCanvas.offsetTop + 8)}px)`;
-}
-
-function hideChartTooltip() {
-  if (!els.chartTooltip) return;
-  els.chartTooltip.hidden = true;
 }
 
 function renderIconChoices(query = "") {
@@ -1207,15 +1198,15 @@ function drawChart(chart, primary, compare, range) {
   const compareLogs = compare ? logsInRange(compare.id, range) : [];
   if (!logs.length) {
     return {
-      svg: `<div class="empty-state compact"><h2>No recent logs</h2><p>This chart will appear when ${escapeHtml(primary.name)} has data in the selected range.</p></div>`,
+      config: emptyChart("No recent logs", `This chart will appear when ${primary.name} has data in the selected range.`),
       insights: [`No ${primary.name} logs in the last ${range} days.`]
     };
   }
   if (chart === "rolling-frequency") return drawRollingFrequency(primary, logs, range);
   if (chart === "rolling-average") return drawRollingAverage(primary, logs, range);
-  if (chart === "hour-of-day") return drawHourOfDay(primary, logs, range);
-  if (chart === "gap") return drawGap(primary, logs, range);
-  if (chart === "value-distribution") return drawValueDistribution(primary, logs, range);
+  if (chart === "hour-of-day") return drawHourOfDay(primary, logs);
+  if (chart === "gap") return drawGap(primary, logs);
+  if (chart === "value-distribution") return drawValueDistribution(primary, logs);
   if (chart === "overlay") return drawOverlay(primary, logs, compare, compareLogs, range);
   if (chart === "days-with-without") return drawDaysWithWithout(primary, compare, range);
   if (chart === "raster") return drawRaster(primary, range);
@@ -1224,27 +1215,32 @@ function drawChart(chart, primary, compare, range) {
 }
 
 function drawTimeline(button, logs, range) {
-  const bounds = timeBounds(range);
+  const data = logs.map((log, index) => ({
+    date: new Date(log.timestamp).getTime(),
+    label: formatShortDate(log.timestamp),
+    value: button.type === "rating" ? Number(log.value) : index % 9,
+    rawValue: log.value,
+    kind: button.type === "rating" ? "value" : "logged event"
+  }));
   const yMax = button.type === "rating" ? button.ratingScale || 10 : 8;
-  const points = logs.map((log, index) => {
-    const x = scaleTime(log.timestamp, bounds, 44, 748);
-    const y = button.type === "rating"
-      ? scale(Number(log.value), 1, yMax, 296, 36)
-      : 250 - (index % 9) * 18;
-    return { x, y, value: log.value, label: formatShortDate(log.timestamp) };
-  });
-  const path = button.type === "rating" ? linePath(points) : "";
-  const marks = points.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="4" data-tip="${escapeHtml(`${point.label} · ${button.type === "rating" ? `value ${point.value}` : "logged event"}`)}"></circle>`).join("");
-  const yTicks = button.type === "rating" ? numericTicks(1, yMax, 5) : numericTicks(0, 8, 5);
-  return {
-    svg: chartSvg(`${axes({
-      xTicks: dateTicks(bounds.min, bounds.max),
-      yTicks,
-      yMin: button.type === "rating" ? 1 : 0,
-      yMax,
+  const config = button.type === "rating"
+    ? lineConfig({
+      title: `${button.name}: timeline`,
+      data,
+      lines: [{ dataKey: "value", name: button.name, color: "var(--accent)" }],
+      yDomain: [1, yMax],
       xLabel: "date",
-      yLabel: button.type === "rating" ? `value / ${yMax}` : "event stack"
-    })}${path ? `<path d="${path}" class="chart-line"></path>` : ""}<g class="chart-points">${marks}</g>`),
+      yLabel: `value / ${yMax}`
+    })
+    : scatterConfig({
+      title: `${button.name}: timeline`,
+      data,
+      yDomain: [0, yMax],
+      xLabel: "date",
+      yLabel: "event stack"
+    });
+  return {
+    config,
     insights: [
       `${logs.length} ${button.type === "rating" ? "ratings" : "events"} observed in the last ${range} days.`,
       button.type === "rating" ? `Recent value: ${logs[logs.length - 1].value}/${button.ratingScale || 10}.` : `Most recent: ${formatDateTime(logs[logs.length - 1].timestamp)}.`
@@ -1263,7 +1259,7 @@ function drawRollingFrequency(button, logs, range) {
     }).length;
     return { date: day, value: count };
   });
-  return lineChart(points, 0, Math.max(1, ...points.map((p) => p.value)), `${button.name}: rolling 7 days`, [
+  return lineChart(points, 0, Math.max(1, ...points.map((p) => p.value)), `${button.name}: rolling 7 days`, "rolling count", [
     `Peak rolling 7-day count: ${Math.max(...points.map((p) => p.value))}.`,
     `This smooths recent frequency without turning it into a streak.`
   ]);
@@ -1280,32 +1276,24 @@ function drawRollingAverage(button, logs, range) {
     }).map((log) => log.value);
     return { date: day, value: values.length ? average(values) : null };
   }).filter((point) => point.value !== null);
-  return lineChart(points, 1, button.ratingScale || 10, `${button.name}: rolling average`, [
+  return lineChart(points, 1, button.ratingScale || 10, `${button.name}: rolling average`, "average value", [
     `${points.length} rolling-average points in the selected range.`,
     `A rolling average can reveal gentle shifts without over-reading one day.`
   ]);
 }
 
 function drawHourOfDay(button, logs) {
-  const buckets = Array.from({ length: 24 }, (_, hour) => ({ label: String(hour), value: 0 }));
-  logs.forEach((log) => { buckets[new Date(log.timestamp).getHours()].value += 1; });
-  const max = Math.max(1, ...buckets.map((b) => b.value));
-  const bars = buckets.map((bucket, index) => {
-    const x = 44 + index * 29;
-    const h = scale(bucket.value, 0, max, 0, 230);
-    return `<rect x="${x}" y="${296 - h}" width="18" height="${h}" rx="3" data-tip="${escapeHtml(`${bucket.label}:00 · ${bucket.value} logs`)}"></rect>`;
-  }).join("");
-  const labels = buckets.filter((_, i) => i % 3 === 0).map((bucket, i) => `<text x="${48 + i * 87}" y="324">${bucket.label}</text>`).join("");
-  const peak = buckets.reduce((best, item) => item.value > best.value ? item : best, buckets[0]);
+  const data = Array.from({ length: 24 }, (_, hour) => ({ label: String(hour), hour: `${hour}:00`, value: 0 }));
+  logs.forEach((log) => { data[new Date(log.timestamp).getHours()].value += 1; });
+  const peak = data.reduce((best, item) => item.value > best.value ? item : best, data[0]);
   return {
-    svg: chartSvg(`${axes({
-      xTicks: [],
-      yTicks: numericTicks(0, max, 5),
-      yMin: 0,
-      yMax: max,
+    config: barConfig({
+      title: `${button.name}: hour of day`,
+      data,
+      xKey: "label",
       xLabel: "hour of day",
       yLabel: "logs"
-    })}<g class="chart-bars">${bars}</g><g class="chart-labels">${labels}</g>`),
+    }),
     insights: [`Most observed hour: ${peak.label}:00 (${peak.value} logs).`, `Hour-of-day can show routine, clustering, or irregularity.`]
   };
 }
@@ -1316,8 +1304,8 @@ function drawGap(button, logs) {
     date: new Date(log.timestamp),
     value: round((new Date(log.timestamp).getTime() - new Date(sorted[index].timestamp).getTime()) / 3600000, 1)
   }));
-  if (!gaps.length) return { svg: `<div class="empty-state compact"><h2>Need two logs</h2><p>Gap charts need at least two events.</p></div>`, insights: ["Need at least two logs to calculate a gap."] };
-  return lineChart(gaps, 0, Math.max(1, ...gaps.map((g) => g.value)), `${button.name}: hours since previous`, [
+  if (!gaps.length) return { config: emptyChart("Need two logs", "Gap charts need at least two events."), insights: ["Need at least two logs to calculate a gap."] };
+  return lineChart(gaps, 0, Math.max(1, ...gaps.map((g) => g.value)), `${button.name}: hours since previous`, "hours", [
     `Median gap: ${round(median(gaps.map((g) => g.value)), 1)} hours.`,
     `Gaps describe rhythm and irregularity, not discipline.`
   ]);
@@ -1327,84 +1315,63 @@ function drawValueDistribution(button, logs) {
   const scaleMax = button.ratingScale || 10;
   const bucketSize = scaleMax === 100 ? 10 : 1;
   const bucketCount = Math.ceil(scaleMax / bucketSize);
-  const buckets = Array.from({ length: bucketCount }, (_, index) => ({ label: `${index * bucketSize + 1}`, value: 0 }));
+  const data = Array.from({ length: bucketCount }, (_, index) => ({ label: `${index * bucketSize + 1}`, value: 0 }));
   logs.forEach((log) => {
     const index = clamp(Math.ceil(log.value / bucketSize) - 1, 0, bucketCount - 1);
-    buckets[index].value += 1;
+    data[index].value += 1;
   });
-  const max = Math.max(1, ...buckets.map((b) => b.value));
-  const width = Math.min(52, 680 / bucketCount - 8);
-  const bars = buckets.map((bucket, index) => {
-    const x = 50 + index * (700 / bucketCount);
-    const h = scale(bucket.value, 0, max, 0, 230);
-    return `<rect x="${x}" y="${296 - h}" width="${width}" height="${h}" rx="4" data-tip="${escapeHtml(`value ${bucket.label} · ${bucket.value} logs`)}"></rect>`;
-  }).join("");
-  const labels = buckets.map((bucket, index) => `<text x="${54 + index * (700 / bucketCount)}" y="324">${bucket.label}</text>`).join("");
   return {
-    svg: chartSvg(`${axes({
-      xTicks: [],
-      yTicks: numericTicks(0, max, 5),
-      yMin: 0,
-      yMax: max,
+    config: barConfig({
+      title: `${button.name}: value distribution`,
+      data,
+      xKey: "label",
       xLabel: `rating value / ${scaleMax}`,
       yLabel: "logs"
-    })}<g class="chart-bars">${bars}</g><g class="chart-labels">${labels}</g>`),
+    }),
     insights: [`Average value: ${round(average(logs.map((log) => log.value)), 1)}/${scaleMax}.`, `Distribution shows where values cluster without ranking days.`]
   };
 }
 
 function drawOverlay(primary, logs, compare, compareLogs, range) {
   if (!compare) {
-    return { svg: `<div class="empty-state compact"><h2>Choose a comparison</h2><p>Select a second button to overlay markers.</p></div>`, insights: ["Choose another button to look for visual overlap."] };
+    return { config: emptyChart("Choose a comparison", "Select a second button to overlay markers."), insights: ["Choose another button to look for visual overlap."] };
   }
-  const bounds = timeBounds(range);
   const isValueOverlay = primary.type === "rating";
   const days = daySeries(range);
   const primarySeries = dailySeries(primary, logs, days);
   const compareSeries = dailySeries(compare, compareLogs, days);
-  const yMin = isValueOverlay ? 1 : 0;
+  const byDate = new Map(days.map((day) => [dateKey(day), { date: day.getTime(), label: formatShortDate(day), primary: null, compare: null }]));
+  primarySeries.forEach((point) => { byDate.get(dateKey(point.date)).primary = point.value; });
+  compareSeries.forEach((point) => { byDate.get(dateKey(point.date)).compare = point.value; });
   const yMax = isValueOverlay
     ? Math.max(primary.ratingScale || 10, compare.type === "rating" ? compare.ratingScale || 10 : 0)
     : Math.max(1, ...primarySeries.map((point) => point.value), ...compareSeries.map((point) => point.value));
-  const primaryPoints = primarySeries.map((point) => ({
-    x: scale(point.date.getTime(), bounds.min, bounds.max, 44, 748),
-    y: scale(point.value, yMin, yMax, 296, 36),
-    value: point.value,
-    label: formatShortDate(point.date)
-  }));
-  const comparePoints = compareSeries.map((point) => ({
-    x: scale(point.date.getTime(), bounds.min, bounds.max, 44, 748),
-    y: scale(point.value, yMin, yMax, 296, 36),
-    value: point.value,
-    label: formatShortDate(point.date)
-  }));
-  const primaryMarks = pointMarkers(primaryPoints, primary.name, "primary");
-  const compareMarks = pointMarkers(comparePoints, compare.name, "compare");
-  const legend = chartLegend([
-    { label: primary.name, className: "legend-primary" },
-    { label: compare.name, className: "legend-compare" }
-  ]);
   return {
-    svg: chartSvg(`${axes({
-      xTicks: dateTicks(bounds.min, bounds.max),
-      yTicks: numericTicks(yMin, yMax, 5),
-      yMin,
-      yMax,
+    config: lineConfig({
+      title: `${primary.name} · ${compare.name}`,
+      data: [...byDate.values()],
+      lines: [
+        { dataKey: "primary", name: primary.name, color: "var(--accent)" },
+        { dataKey: "compare", name: compare.name, color: "var(--danger)" }
+      ],
+      yDomain: [isValueOverlay ? 1 : 0, yMax],
       xLabel: "date",
-      yLabel: isValueOverlay ? "daily value" : "daily logs"
-    })}${legend}<path d="${linePath(primaryPoints)}" class="chart-line overlay-primary-line"></path><path d="${linePath(comparePoints)}" class="chart-line overlay-compare-line"></path><g class="chart-points">${primaryMarks}${compareMarks}</g>`),
+      yLabel: isValueOverlay ? "daily value" : "daily logs",
+      legend: true,
+      connectNulls: true
+    }),
     insights: [`${compareLogs.length} ${compare.name} markers over ${logs.length} ${primary.name} logs.`, `Overlap is not causation. Use it as a clue, not proof.`]
   };
 }
 
 function drawDaysWithWithout(primary, compare, range) {
   if (!compare) {
-    return { svg: `<div class="empty-state compact"><h2>Choose a comparison</h2><p>Select a second button to compare days with and without it.</p></div>`, insights: ["Choose a comparison button first."] };
+    return { config: emptyChart("Choose a comparison", "Select a second button to compare days with and without it."), insights: ["Choose a comparison button first."] };
   }
   const rating = primary.type === "rating" ? primary : compare.type === "rating" ? compare : null;
   const trigger = rating?.id === primary.id ? compare : primary;
   if (!rating || !trigger || rating.id === trigger.id) {
-    return { svg: `<div class="empty-state compact"><h2>Needs rating + event/count</h2><p>Use a rating with a count or event button.</p></div>`, insights: ["Days with vs without needs one rating and one count/event."] };
+    return { config: emptyChart("Needs rating + event/count", "Use a rating with a count or event button."), insights: ["Days with vs without needs one rating and one count/event."] };
   }
   const days = daySeries(range);
   const triggerDays = new Set(logsInRange(trigger.id, range).map((log) => dateKey(log.timestamp)));
@@ -1420,22 +1387,19 @@ function drawDaysWithWithout(primary, compare, range) {
   const withAvg = withValues.length ? average(withValues) : 0;
   const withoutAvg = withoutValues.length ? average(withoutValues) : 0;
   const max = rating.ratingScale || 10;
-  const bars = [
-    { label: "With", value: withAvg, n: withValues.length, x: 170 },
-    { label: "Without", value: withoutAvg, n: withoutValues.length, x: 430 }
-  ].map((bar) => {
-    const h = scale(bar.value, 0, max, 0, 220);
-    return `<g><rect x="${bar.x}" y="${296 - h}" width="120" height="${h}" rx="6" data-tip="${escapeHtml(`${bar.label} · avg ${round(bar.value, 1)} · n=${bar.n}`)}"></rect><text x="${bar.x}" y="324">${bar.label} · n=${bar.n}</text><text x="${bar.x}" y="${286 - h}">${round(bar.value, 1)}</text></g>`;
-  }).join("");
   return {
-    svg: chartSvg(`${axes({
-      xTicks: [],
-      yTicks: numericTicks(0, max, 6),
-      yMin: 0,
-      yMax: max,
+    config: barConfig({
+      title: `${rating.name}: with vs without ${trigger.name}`,
+      data: [
+        { label: "With", value: round(withAvg, 1), n: withValues.length },
+        { label: "Without", value: round(withoutAvg, 1), n: withoutValues.length }
+      ],
+      xKey: "label",
       xLabel: `${trigger.name} days`,
-      yLabel: `${rating.name} avg / ${max}`
-    })}<g class="chart-bars">${bars}</g>`),
+      yLabel: `${rating.name} avg / ${max}`,
+      yDomain: [0, max],
+      labels: true
+    }),
     insights: [`${rating.name} average with ${trigger.name}: ${round(withAvg, 1)}; without: ${round(withoutAvg, 1)}.`, `This is a possible association, not proof.`]
   };
 }
@@ -1443,26 +1407,36 @@ function drawDaysWithWithout(primary, compare, range) {
 function drawRaster(primary, range) {
   const active = getOrderedActiveButtons().slice(0, 12);
   const days = daySeries(range);
-  const cell = Math.max(7, Math.min(18, Math.floor(660 / days.length)));
-  const rowH = 22;
-  const dayLabels = days.map((day, col) => {
-    const interval = range <= 7 ? 1 : range <= 30 ? 5 : 15;
-    if (col % interval !== 0 && col !== days.length - 1) return "";
-    return `<text x="${112 + col * cell}" y="${Math.max(330, 58 + active.length * rowH)}">${formatShortDate(day)}</text>`;
-  }).join("");
-  const rows = active.map((button, row) => {
+  const data = [];
+  active.forEach((button, row) => {
     const byDay = groupByDay(logsInRange(button.id, range));
-    const cells = days.map((day, col) => {
+    days.forEach((day, col) => {
       const values = byDay[dateKey(day)] || [];
       const intensity = button.type === "rating" && values.length
         ? average(values.map((log) => log.value)) / (button.ratingScale || 10)
         : Math.min(1, values.length / 6);
-      return `<rect x="${112 + col * cell}" y="${34 + row * rowH}" width="${cell - 1}" height="16" rx="2" opacity="${values.length ? 0.24 + intensity * 0.76 : 0.08}" data-tip="${escapeHtml(`${button.name} · ${dateKey(day)} · ${values.length ? values.length : "empty"}`)}"></rect>`;
-    }).join("");
-    return `<g class="${button.id === primary.id ? "raster-primary" : ""}"><text x="12" y="${47 + row * rowH}">${escapeHtml(button.name)}</text>${cells}</g>`;
-  }).join("");
+      data.push({
+        x: col,
+        y: row,
+        label: `${button.name} · ${dateKey(day)}`,
+        buttonName: button.name,
+        dateLabel: formatShortDate(day),
+        value: values.length,
+        intensity: values.length ? 0.24 + intensity * 0.76 : 0.08,
+        primary: button.id === primary.id
+      });
+    });
+  });
   return {
-    svg: chartSvg(`<g class="raster"><text x="112" y="20" class="chart-title-small">date columns · intensity = daily logs/value</text>${rows}<g class="chart-labels">${dayLabels}</g></g>`, 800, Math.max(360, 92 + active.length * rowH)),
+    config: {
+      kind: "raster",
+      title: "date columns · intensity = daily logs/value",
+      data,
+      rows: active.map((button) => button.name),
+      days,
+      range,
+      height: Math.max(320, 110 + active.length * 24)
+    },
     insights: [`Raster compares up to 12 active buttons across ${range} days.`, `Look for clusters and weekly texture, not perfect days.`]
   };
 }
@@ -1479,30 +1453,27 @@ function drawBeforeEvent(primary, logs) {
     return `${button.name}: ${recent.length}`;
   }).filter(Boolean).slice(0, 8);
   return {
-    svg: `<div class="before-card"><h3>Before ${escapeHtml(primary.name)}</h3><p>${escapeHtml(formatDateTime(latest.timestamp))}</p><ul>${lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("") || "<li>No other logs in the previous 24h.</li>"}</ul></div>`,
+    config: {
+      kind: "summary",
+      title: `Before ${primary.name}`,
+      subtitle: formatDateTime(latest.timestamp),
+      lines: lines.length ? lines : ["No other logs in the previous 24h."]
+    },
     insights: [`Summary uses the latest ${primary.name} event.`, `Previous-24h context is a discovery prompt, not causality.`]
   };
 }
 
-function lineChart(points, minY, maxY, title, insights) {
-  if (!points.length) return { svg: `<div class="empty-state compact"><h2>No points</h2><p>Not enough data for this chart.</p></div>`, insights };
-  const bounds = { min: points[0].date.getTime(), max: points[points.length - 1].date.getTime() || Date.now() };
-  const mapped = points.map((point) => ({
-    x: scale(point.date.getTime(), bounds.min, bounds.max, 44, 748),
-    y: scale(point.value, minY, maxY, 296, 36),
-    value: point.value,
-    label: formatShortDate(point.date)
-  }));
-  const marks = mapped.map((point) => `<circle cx="${point.x}" cy="${point.y}" r="3" data-tip="${escapeHtml(`${point.label} · ${round(point.value, 1)}`)}"></circle>`).join("");
+function lineChart(points, minY, maxY, title, yLabel, insights) {
+  if (!points.length) return { config: emptyChart("No points", "Not enough data for this chart."), insights };
   return {
-    svg: chartSvg(`${axes({
-      xTicks: dateTicks(bounds.min, bounds.max),
-      yTicks: numericTicks(minY, maxY, 5),
-      yMin: minY,
-      yMax: maxY,
+    config: lineConfig({
+      title,
+      data: points.map((point) => ({ date: point.date.getTime(), label: formatShortDate(point.date), value: point.value })),
+      lines: [{ dataKey: "value", name: title, color: "var(--accent)" }],
+      yDomain: [minY, maxY],
       xLabel: "date",
-      yLabel: title.includes("hours") ? "hours" : title.includes("average") ? "average value" : "rolling count"
-    })}<path d="${linePath(mapped)}" class="chart-line"></path><g class="chart-points">${marks}</g><text x="44" y="24" class="chart-title-small">${escapeHtml(title)}</text>`),
+      yLabel
+    }),
     insights
   };
 }
@@ -1519,66 +1490,197 @@ function dailySeries(button, logs, days) {
   }).filter((point) => point.value !== null);
 }
 
-function pointMarkers(points, label, variant) {
-  return points.map((point) => {
-    return `<circle class="overlay-${variant}-point" cx="${point.x}" cy="${point.y}" r="3" data-tip="${escapeHtml(`${label} · ${point.label || ""} · ${round(point.value, 1)}`)}"></circle>`;
-  }).join("");
+function lineConfig({ title, data, lines, yDomain, xLabel, yLabel, legend = false, connectNulls = false }) {
+  return { kind: "line", title, data, lines, yDomain, xLabel, yLabel, legend, connectNulls, height: 320 };
 }
 
-function chartLegend(items) {
-  return `<g class="chart-legend">${items.map((item, index) => {
-    const x = 70;
-    const y = 44 + index * 20;
-    return `<g><line x1="${x}" x2="${x + 28}" y1="${y}" y2="${y}" class="${item.className}"></line><text x="${x + 38}" y="${y + 4}">${escapeHtml(item.label)}</text></g>`;
-  }).join("")}</g>`;
+function barConfig({ title, data, xKey, xLabel, yLabel, yDomain, labels = false }) {
+  return { kind: "bar", title, data, xKey, xLabel, yLabel, yDomain, labels, height: 320 };
 }
 
-function chartSvg(content, width = 800, height = 350) {
-  return `<svg class="chart-svg" viewBox="0 0 ${width} ${height}" role="img">${content}</svg>`;
+function scatterConfig({ title, data, yDomain, xLabel, yLabel }) {
+  return { kind: "scatter", title, data, yDomain, xLabel, yLabel, height: 320 };
 }
 
-function dateTicks(min, max) {
-  return Array.from({ length: 5 }, (_, index) => {
-    const value = min + ((max - min) * index) / 4;
-    return {
-      x: scale(value, min, max, 44, 748),
-      label: formatShortDate(value)
-    };
+function emptyChart(title, body) {
+  return { kind: "empty", title, body };
+}
+
+function ChartView({ config }) {
+  const React = window.React;
+  const R = window.Recharts;
+  const e = React.createElement;
+  if (config.kind === "empty") {
+    return e("div", { className: "empty-state compact" }, e("h2", null, config.title), e("p", null, config.body));
+  }
+  if (config.kind === "summary") {
+    return e("div", { className: "before-card" },
+      e("h3", null, config.title),
+      e("p", null, config.subtitle),
+      e("ul", null, config.lines.map((line) => e("li", { key: line }, line)))
+    );
+  }
+  const common = {
+    data: config.data,
+    margin: { top: 26, right: 26, bottom: 34, left: 34 }
+  };
+  return e("div", { className: "recharts-frame", style: { height: `${config.height || 320}px` } },
+    e(R.ResponsiveContainer, { width: "100%", height: "100%" }, renderRechartsChart(e, R, config, common))
+  );
+}
+
+function renderRechartsChart(e, R, config, common) {
+  if (config.kind === "bar") {
+    return e(R.BarChart, common,
+      grid(e, R),
+      e(R.XAxis, axisProps({ dataKey: config.xKey, label: config.xLabel })),
+      e(R.YAxis, yAxisProps(config)),
+      e(R.Tooltip, { content: (props) => e(ChartTooltip, { ...props, config }) }),
+      e(R.Bar, { dataKey: "value", name: config.yLabel, fill: "var(--accent)", radius: [6, 6, 0, 0] },
+        config.labels ? e(R.LabelList, { dataKey: "value", position: "top", formatter: (value) => formatChartNumber(value) }) : null
+      )
+    );
+  }
+  if (config.kind === "scatter") {
+    return e(R.ScatterChart, common,
+      grid(e, R),
+      e(R.XAxis, timeAxisProps(config.xLabel)),
+      e(R.YAxis, yAxisProps(config)),
+      e(R.Tooltip, { content: (props) => e(ChartTooltip, { ...props, config }) }),
+      e(R.Scatter, { data: config.data, dataKey: "value", name: config.title, fill: "var(--accent)" })
+    );
+  }
+  if (config.kind === "raster") {
+    return e(R.ScatterChart, common,
+      grid(e, R),
+      e(R.XAxis, {
+        type: "number",
+        dataKey: "x",
+        domain: [-0.5, Math.max(0.5, config.days.length - 0.5)],
+        ticks: rasterTicks(config.days.length, config.range),
+        tickFormatter: (value) => config.days[value] ? formatShortDate(config.days[value]) : "",
+        label: axisLabel("date columns"),
+        allowDecimals: false
+      }),
+      e(R.YAxis, {
+        type: "number",
+        dataKey: "y",
+        domain: [Math.max(0.5, config.rows.length - 0.5), -0.5],
+        ticks: config.rows.map((_, index) => index),
+        tickFormatter: (value) => config.rows[value] || "",
+        width: 106,
+        allowDecimals: false
+      }),
+      e(R.Tooltip, { content: (props) => e(ChartTooltip, { ...props, config }) }),
+      e(R.Scatter, { data: config.data, dataKey: "value", shape: (props) => e(RasterCell, { ...props, range: config.range }) })
+    );
+  }
+  return e(R.LineChart, common,
+    grid(e, R),
+    e(R.XAxis, timeAxisProps(config.xLabel)),
+    e(R.YAxis, yAxisProps(config)),
+    e(R.Tooltip, { content: (props) => e(ChartTooltip, { ...props, config }) }),
+    config.legend ? e(R.Legend, { verticalAlign: "top", align: "left", height: 34 }) : null,
+    ...config.lines.map((line) => e(R.Line, {
+      key: line.dataKey,
+      type: "linear",
+      dataKey: line.dataKey,
+      name: line.name,
+      stroke: line.color,
+      strokeWidth: line.color === "var(--danger)" ? 2.5 : 3,
+      dot: { r: 3, strokeWidth: 1.5, fill: line.color },
+      activeDot: { r: 5 },
+      connectNulls: config.connectNulls
+    }))
+  );
+}
+
+function ChartTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const source = payload[0].payload || {};
+  const label = source.label || source.dateLabel || source.hour || "";
+  let rows = payload
+    .filter((item) => item.value !== null && item.value !== undefined)
+    .map((item) => ({ name: item.name || source.buttonName || "Value", value: item.value }));
+  if (source.kind === "logged event") rows = [{ name: "Event", value: "logged" }];
+  if (source.kind === "value") rows = [{ name: "Value", value: source.rawValue }];
+  if (Number.isFinite(source.n)) rows.push({ name: "n", value: source.n });
+  return window.React.createElement("div", { className: "chart-tooltip-box" },
+    label ? window.React.createElement("strong", null, label) : null,
+    ...rows.map((row, index) => window.React.createElement("span", { key: `${row.name}-${index}` }, `${row.name}: ${formatChartNumber(row.value)}`))
+  );
+}
+
+function RasterCell({ cx, cy, payload, range }) {
+  const width = range <= 7 ? 28 : range <= 30 ? 12 : 6;
+  const color = payload.primary ? "var(--accent)" : "var(--muted)";
+  return window.React.createElement("rect", {
+    x: cx - width / 2,
+    y: cy - 7,
+    width,
+    height: 14,
+    rx: 2,
+    fill: color,
+    opacity: payload.intensity
   });
 }
 
-function numericTicks(min, max, count) {
-  const safeMax = max === min ? min + 1 : max;
-  return Array.from({ length: count }, (_, index) => {
-    const value = min + ((safeMax - min) * index) / (count - 1);
-    return {
-      value,
-      label: formatAxisNumber(value)
-    };
-  });
+function grid(e, R) {
+  return e(R.CartesianGrid, { stroke: "color-mix(in srgb, var(--text), transparent 90%)", vertical: false });
 }
 
-function formatAxisNumber(value) {
-  if (Math.abs(value) >= 10 || Number.isInteger(value)) return String(Math.round(value));
-  return String(round(value, 1));
+function axisProps({ dataKey, label, type, tickFormatter, domain }) {
+  return {
+    dataKey,
+    type,
+    domain,
+    tickFormatter,
+    tickLine: false,
+    axisLine: { stroke: "color-mix(in srgb, var(--text), transparent 72%)" },
+    label: axisLabel(label)
+  };
 }
 
-function axes({ xTicks = [], yTicks = [], yMin = 0, yMax = 1, xLabel = "", yLabel = "" } = {}) {
-  const x = xTicks.map((tick) => {
-    return `<g><line x1="${tick.x}" y1="304" x2="${tick.x}" y2="310"></line><text x="${tick.x}" y="326" text-anchor="middle">${escapeHtml(tick.label)}</text></g>`;
-  }).join("");
-  const y = yTicks.map((tick) => {
-    const yPos = scale(tick.value, yMin, yMax, 296, 36);
-    const inside = tick.align === "inside";
-    const label = escapeHtml(tick.label ?? formatAxisNumber(tick.value));
-    const bg = inside ? `<rect x="49" y="${yPos - 12}" width="${Math.min(128, Math.max(54, label.length * 8 + 14))}" height="19" rx="4" class="axis-label-bg"></rect>` : "";
-    return `<g><line x1="38" y1="${yPos}" x2="44" y2="${yPos}"></line><line x1="44" y1="${yPos}" x2="760" y2="${yPos}" class="grid-line"></line>${bg}<text x="${inside ? 56 : 32}" y="${yPos + 4}" text-anchor="${inside ? "start" : "end"}">${label}</text></g>`;
-  }).join("");
-  return `<g class="chart-axis"><line x1="44" y1="304" x2="760" y2="304"></line><line x1="44" y1="32" x2="44" y2="304"></line>${x}${y}<text x="402" y="344" text-anchor="middle" class="axis-title">${escapeHtml(xLabel)}</text><text x="12" y="170" text-anchor="middle" class="axis-title axis-title-y" transform="rotate(-90 12 170)">${escapeHtml(yLabel)}</text></g>`;
+function timeAxisProps(label) {
+  return axisProps({ dataKey: "date", label, type: "number", domain: ["dataMin", "dataMax"], tickFormatter: formatShortDate });
 }
 
-function linePath(points) {
-  return points.map((point, index) => `${index ? "L" : "M"} ${round(point.x, 1)} ${round(point.y, 1)}`).join(" ");
+function yAxisProps(config) {
+  return {
+    domain: config.yDomain || [0, "auto"],
+    tickLine: false,
+    axisLine: { stroke: "color-mix(in srgb, var(--text), transparent 72%)" },
+    label: axisLabel(config.yLabel, -90),
+    tickFormatter: formatChartNumber
+  };
+}
+
+function axisLabel(value, angle = 0) {
+  return {
+    value,
+    angle,
+    position: angle ? "insideLeft" : "insideBottom",
+    offset: angle ? 0 : -24,
+    fill: "var(--muted)",
+    fontSize: 11,
+    fontWeight: 800
+  };
+}
+
+function rasterTicks(length, range) {
+  const interval = range <= 7 ? 1 : range <= 30 ? 5 : 15;
+  const ticks = [];
+  for (let index = 0; index < length; index += interval) ticks.push(index);
+  if (!ticks.includes(length - 1)) ticks.push(length - 1);
+  return ticks;
+}
+
+function formatChartNumber(value) {
+  if (typeof value === "string") return value;
+  if (!Number.isFinite(Number(value))) return "";
+  const number = Number(value);
+  if (Math.abs(number) >= 10 || Number.isInteger(number)) return String(Math.round(number));
+  return String(round(number, 1));
 }
 
 function logsInRange(buttonId, days) {
@@ -1595,21 +1697,6 @@ function daySeries(days) {
     date.setDate(date.getDate() - (days - 1 - index));
     return date;
   });
-}
-
-function timeBounds(days) {
-  const max = Date.now();
-  return { min: max - days * MS_DAY, max };
-}
-
-function scaleTime(timestamp, bounds, outMin, outMax) {
-  return scale(new Date(timestamp).getTime(), bounds.min, bounds.max, outMin, outMax);
-}
-
-function scale(value, inMin, inMax, outMin, outMax) {
-  if (inMax === inMin) return (outMin + outMax) / 2;
-  const t = (value - inMin) / (inMax - inMin);
-  return outMin + clamp(t, 0, 1) * (outMax - outMin);
 }
 
 function groupByDay(logs) {

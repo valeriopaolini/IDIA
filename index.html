@@ -108,7 +108,6 @@
               <p id="chartNote" class="chart-note">Overlap is not causation. Use it as a clue, not proof.</p>
             </div>
             <div id="chartCanvas" class="chart-canvas" aria-live="polite"></div>
-            <div id="chartTooltip" class="chart-tooltip" role="status" hidden></div>
           </div>
           <div id="insightList" class="insight-list"></div>
         </section>
@@ -299,6 +298,10 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="vendor/react.production.min.js"></script>
+    <script src="vendor/react-dom.production.min.js"></script>
+    <script src="vendor/prop-types.min.js"></script>
+    <script src="vendor/Recharts.min.js"></script>
     <script src="app.js" type="module"></script>
   </body>
 </html>
